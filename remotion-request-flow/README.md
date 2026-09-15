@@ -50,7 +50,13 @@ Chrome のパスを明示する場合（Linux 例）:
 npx remotion render RequestFlow out/request-flow.mp4 --browser-executable=/usr/bin/google-chrome-stable
 ```
 
-出力先は `out/request-flow.mp4` です（`out/` は gitignore 対象）。
+出力先は `out/request-flow.mp4` です（`out/` は gitignore 対象）。このクラウド環境では次のコマンドでレンダーに成功しています。
+
+```bash
+npx remotion render RequestFlow out/request-flow.mp4 --browser-executable=/usr/bin/google-chrome-stable
+```
+
+成果物のコピー: リポジトリの `artifacts/request-flow.mp4`（1920×1080、25 秒、H.264）。
 
 ## Composition
 

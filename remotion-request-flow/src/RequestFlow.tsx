@@ -36,8 +36,11 @@ const nodeCenterX = (index: number) => nodeLeft(index) + BOX_W / 2;
 
 const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
 
-const appear = (frame: number, fps: number, start: number) =>
-  clamp01(
+const appear = (frame: number, fps: number, start: number) => {
+  if (frame < start) {
+    return 0;
+  }
+  return clamp01(
     spring({
       frame: frame - start,
       fps,
@@ -45,6 +48,7 @@ const appear = (frame: number, fps: number, start: number) =>
       durationInFrames: 28,
     }),
   );
+};
 
 export const RequestFlow: FC = () => {
   const frame = useCurrentFrame();
@@ -128,10 +132,10 @@ export const RequestFlow: FC = () => {
                 stroke="#8ea0c2"
                 strokeWidth="3"
                 strokeLinecap="round"
-                markerEnd="url(#arrowhead)"
+                markerEnd={draw > 0.9 ? "url(#arrowhead)" : undefined}
                 strokeDasharray={length}
                 strokeDashoffset={length * (1 - draw)}
-                opacity={0.35 + draw * 0.65}
+                opacity={draw === 0 ? 0 : 0.35 + draw * 0.65}
               />
             );
           })}
@@ -171,10 +175,12 @@ export const RequestFlow: FC = () => {
             style={{
               left: packetX,
               top: ARROW_Y,
-              opacity: interpolate(frame, [PACKET_START, PACKET_START + 8], [0, 1], {
-                extrapolateLeft: "clamp",
-                extrapolateRight: "clamp",
-              }),
+              opacity: interpolate(
+                frame,
+                [PACKET_START, PACKET_START + 8, PACKET_END - 18, PACKET_END],
+                [0, 1, 1, 0],
+                { extrapolateLeft: "clamp", extrapolateRight: "clamp" },
+              ),
             }}
           />
         ) : null}
@@ -214,9 +220,9 @@ const NodeIcon: FC<{ kind: (typeof NODES)[number]["label"]; color: string }> = (
   if (kind === "LB") {
     return (
       <svg {...common}>
-        <path d="M6 18h10" />
-        <path d="M20 10h10M20 18h10M20 26h10" />
-        <path d="M16 18l4-8M16 18l4 0M16 18l4 8" />
+        <path d="M6 18h11" />
+        <circle cx="20" cy="18" r="3.2" />
+        <path d="M23 18l7-8M23 18h8M23 18l7 8" />
       </svg>
     );
   }
