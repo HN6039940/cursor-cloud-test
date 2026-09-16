@@ -5,7 +5,8 @@ import { BOUNDARY_PROBE, BoundaryProbe } from "./BoundaryProbe";
 import { BRANCH_MERGE, BranchMerge } from "./BranchMerge";
 import { CACHE_HIT_MISS, CacheHitMiss } from "./CacheHitMiss";
 import { ICON_NODES, IconNodes } from "./IconNodes";
-import { ICON_PATH_BRANCH, IconPathBranch } from "./IconPathBranch";
+import { ICON_PATH_BRANCH, IconPathBranch, REQUEST_FLOW_SUCCESS, RequestFlowSuccess } from "./IconPathBranch";
+import { REQUEST_FLOW_FAIL_LOST, RequestFlowFailLost } from "./RequestFlowFailLost";
 import { RequestFlow } from "./RequestFlow";
 import { REQUEST_FLOW_ZOOM, RequestFlowZoom } from "./RequestFlowZoom";
 
@@ -67,6 +68,22 @@ export const RemotionRoot: FC = () => {
         fps={ICON_PATH_BRANCH.fps}
         width={ICON_PATH_BRANCH.width}
         height={ICON_PATH_BRANCH.height}
+      />
+      <Composition
+        id="RequestFlowSuccess"
+        component={RequestFlowSuccess}
+        durationInFrames={REQUEST_FLOW_SUCCESS.durationInFrames}
+        fps={REQUEST_FLOW_SUCCESS.fps}
+        width={REQUEST_FLOW_SUCCESS.width}
+        height={REQUEST_FLOW_SUCCESS.height}
+      />
+      <Composition
+        id="RequestFlowFailLost"
+        component={RequestFlowFailLost}
+        durationInFrames={REQUEST_FLOW_FAIL_LOST.durationInFrames}
+        fps={REQUEST_FLOW_FAIL_LOST.fps}
+        width={REQUEST_FLOW_FAIL_LOST.width}
+        height={REQUEST_FLOW_FAIL_LOST.height}
       />
     </>
   );
