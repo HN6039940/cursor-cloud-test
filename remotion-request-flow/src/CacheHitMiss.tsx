@@ -14,6 +14,7 @@ import {
   PATH_MISS,
   PATH_MISS_ARRIVAL,
   PATH_MISS_NODES,
+  FAIL_COLOR,
   SUCCESS_COLOR,
   WIDTH,
   badgeFromT,
@@ -24,9 +25,6 @@ import {
   type NodeId,
   type OverlayPath,
 } from "./iconPathShared";
-
-const HIT_COLOR = "#3DDC97";
-const MISS_CACHE = "#F07178";
 
 const MISS_START = 175;
 const MISS_DUR = 280;
@@ -69,10 +67,11 @@ export const CacheHitMiss: FC = () => {
   const nodeFx: Partial<Record<NodeId, NodeFx>> = {
     appb: { dim: 0.38 },
   };
-  const markSuccess = (id: NodeId, opacity: number, color = SUCCESS_COLOR) => {
+  const markSuccess = (id: NodeId, opacity: number) => {
     const prev = nodeFx[id];
     nodeFx[id] = {
-      glow: color,
+      status: "success",
+      glow: SUCCESS_COLOR,
       badge: "check",
       badgeOpacity: Math.max(prev?.badgeOpacity ?? 0, opacity),
       dim: prev?.dim,
@@ -84,8 +83,8 @@ export const CacheHitMiss: FC = () => {
       if (tMiss < PATH_MISS_ARRIVAL[id]) {
         continue;
       }
-      if (id === "cache" && !missDone) {
-        nodeFx.cache = { glow: MISS_CACHE };
+      if (id === "cache") {
+        nodeFx.cache = { status: "fail", glow: FAIL_COLOR, dim: nodeFx.cache?.dim };
         continue;
       }
       markSuccess(id, badgeFromT(tMiss, PATH_MISS_ARRIVAL[id], missDone));
@@ -96,12 +95,7 @@ export const CacheHitMiss: FC = () => {
     nodeFx.db = { dim: 0.32 };
     for (const id of PATH_HIT_NODES) {
       if (tHit >= PATH_HIT_ARRIVAL[id]) {
-        const hitMark = id === "cache" || (hitDone && id === "appa");
-        markSuccess(
-          id,
-          badgeFromT(tHit, PATH_HIT_ARRIVAL[id], hitDone),
-          hitMark ? HIT_COLOR : SUCCESS_COLOR,
-        );
+        markSuccess(id, badgeFromT(tHit, PATH_HIT_ARRIVAL[id], hitDone));
       }
     }
   }
@@ -110,18 +104,14 @@ export const CacheHitMiss: FC = () => {
   if (packet && inMiss && !missDone) {
     const id = nearestNode(packet.pos, PATH_MISS_NODES);
     if (id === "cache") {
-      nodeFx.cache = { ...nodeFx.cache, glow: MISS_CACHE };
+      nodeFx.cache = { ...nodeFx.cache, status: "fail", glow: FAIL_COLOR };
     } else {
       nodeFx[id] = { ...nodeFx[id], glow: A_COLOR };
     }
   }
   if (packet && inHit && !hitDone) {
     const id = nearestNode(packet.pos, PATH_HIT_NODES);
-    if (id === "cache") {
-      nodeFx.cache = { ...nodeFx.cache, glow: HIT_COLOR };
-    } else {
-      nodeFx[id] = { ...nodeFx[id], glow: A_COLOR };
-    }
+    nodeFx[id] = { ...nodeFx[id], glow: A_COLOR };
   }
 
   const hitReturn =
@@ -143,7 +133,7 @@ export const CacheHitMiss: FC = () => {
     overlays.push({
       pts: PATH_HIT,
       progress: tHit,
-      color: tHit >= PATH_HIT_CACHE_T ? HIT_COLOR : SUCCESS_COLOR,
+      color: SUCCESS_COLOR,
       width: 5,
       opacity: hitDone ? 0.88 : 0.78,
     });

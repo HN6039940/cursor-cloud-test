@@ -383,11 +383,37 @@ export const badgeFromT = (t: number, arrival: number, done: boolean): number =>
   });
 };
 
+export type NodeStatus = "success" | "fail";
+
 export type NodeFx = {
   glow?: string;
   badge?: BadgeKind;
   badgeOpacity?: number;
   dim?: number;
+  status?: NodeStatus;
+};
+
+export const nodeStatus = (fx?: NodeFx): NodeStatus | undefined => {
+  if (fx?.status) {
+    return fx.status;
+  }
+  if (fx?.badge === "check") {
+    return "success";
+  }
+  if (fx?.badge === "x") {
+    return "fail";
+  }
+  return undefined;
+};
+
+export const statusColor = (status: NodeStatus | undefined): string | undefined => {
+  if (status === "success") {
+    return SUCCESS_COLOR;
+  }
+  if (status === "fail") {
+    return FAIL_COLOR;
+  }
+  return undefined;
 };
 
 export type OverlayPath = {
@@ -538,7 +564,9 @@ export const IconPathStage: FC<{
               });
           const y = interpolate(appear, [0, 1], [14, 0]);
           const fx = nodeFx[node.id];
-          const glow = fx?.glow;
+          const statusTint = statusColor(nodeStatus(fx));
+          const glow = statusTint ?? fx?.glow;
+          const barColor = statusTint ?? node.accent;
           const dim = fx?.dim ?? 1;
           return (
             <div
@@ -562,7 +590,7 @@ export const IconPathStage: FC<{
                 alignItems: "center",
               }}
             >
-              <div style={{ width: "100%", height: 6, background: node.accent }} />
+              <div style={{ width: "100%", height: 6, background: barColor }} />
               <Img src={staticFile(node.file)} style={{ width: 64, height: 64, marginTop: 28 }} />
               <Txt
                 style={{
