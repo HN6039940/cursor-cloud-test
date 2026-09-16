@@ -38,6 +38,7 @@ const X_CLIENT = MARGIN;
 const X_LB = X_CLIENT + CARD_W + COL_GAP;
 const X_APPS = X_LB + CARD_W + COL_GAP;
 const X_CACHE = X_APPS + CARD_W + COL_GAP;
+const X_APPB = (X_APPS + X_CACHE) / 2;
 const X_DB = X_CACHE + CARD_W + COL_GAP;
 
 const CY_MID = 540;
@@ -49,7 +50,7 @@ const NODES: NodeDef[] = [
   { id: "client", label: "Client", file: "icons/client.svg", accent: "#59A6FF", x: X_CLIENT, y: topFor(CY_MID) },
   { id: "lb", label: "LB", file: "icons/lb.svg", accent: "#4DD18C", x: X_LB, y: topFor(CY_MID) },
   { id: "appa", label: "App A", file: "icons/app.svg", accent: "#F0C14B", x: X_APPS, y: topFor(CY_UP) },
-  { id: "appb", label: "App B", file: "icons/app.svg", accent: "#FF8A4C", x: X_APPS, y: topFor(CY_DN) },
+  { id: "appb", label: "App B", file: "icons/app.svg", accent: "#FF8A4C", x: X_APPB, y: topFor(CY_DN) },
   { id: "cache", label: "Cache", file: "icons/cache.svg", accent: "#C084FC", x: X_CACHE, y: topFor(CY_UP) },
   { id: "db", label: "DB", file: "icons/db.svg", accent: "#A78BFA", x: X_DB, y: topFor(CY_MID) },
 ];
@@ -87,15 +88,15 @@ const MERGE_PT: Pt = { x: MERGE_X, y: CY_MID };
 
 const PATH_CLIENT_LB: Pt[] = [CLIENT_RIGHT, LB_LEFT];
 const PATH_LB_STUB: Pt[] = [LB_RIGHT, BRANCH_PT];
-const PATH_LB_APPA: Pt[] = [BRANCH_PT, { x: BRANCH_X, y: CY_UP }, APPA_LEFT];
-const PATH_LB_APPB: Pt[] = [BRANCH_PT, { x: BRANCH_X, y: CY_DN }, APPB_LEFT];
+const PATH_LB_APPA: Pt[] = [BRANCH_PT, { x: BRANCH_X, y: APPA_LEFT.y }, APPA_LEFT];
+const PATH_LB_APPB: Pt[] = [BRANCH_PT, { x: BRANCH_X, y: APPB_LEFT.y }, APPB_LEFT];
 const PATH_APPA_CACHE: Pt[] = [APPA_RIGHT, CACHE_LEFT];
-const PATH_CACHE_TO_MERGE: Pt[] = [CACHE_RIGHT, { x: MERGE_X, y: CY_UP }, MERGE_PT];
-const PATH_APPB_TO_MERGE: Pt[] = [APPB_RIGHT, { x: MERGE_X, y: CY_DN }, MERGE_PT];
+const PATH_CACHE_TO_MERGE: Pt[] = [CACHE_RIGHT, { x: MERGE_X, y: CACHE_RIGHT.y }, MERGE_PT];
+const PATH_APPB_TO_MERGE: Pt[] = [APPB_RIGHT, { x: MERGE_X, y: APPB_RIGHT.y }, MERGE_PT];
 const PATH_TRUNK: Pt[] = [MERGE_PT, DB_LEFT];
 const PATH_SPINE: Pt[] = [
-  { x: MERGE_X, y: CY_UP },
-  { x: MERGE_X, y: CY_DN },
+  { x: MERGE_X, y: CACHE_RIGHT.y },
+  { x: MERGE_X, y: APPB_RIGHT.y },
 ];
 
 const DRAW_PATHS: { pts: Pt[]; start: number; dur: number }[] = [
