@@ -30,6 +30,8 @@
     "render:cache": "remotion render CacheHitMiss out/cache-hit-miss.mp4",
     "render:icons": "remotion render IconNodes out/icon-nodes.mp4",
     "render:icon-path": "remotion render IconPathBranch out/icon-path-branch.mp4",
+    "render:success": "remotion render RequestFlowSuccess out/request-flow-success.mp4",
+    "render:fail-lost": "remotion render RequestFlowFailLost out/request-flow-fail-lost.mp4",
     "upgrade": "remotion upgrade",
     "lint": "eslint src && tsc"
   }
