@@ -1,0 +1,32 @@
+{
+  "name": "remotion-viz-stack",
+  "version": "1.0.0",
+  "description": "Team meta-diagram of visualization stack roles (Remotion personal trial)",
+  "repository": {},
+  "license": "UNLICENSED",
+  "private": true,
+  "dependencies": {
+    "@remotion/cli": "4.0.525",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "remotion": "4.0.525"
+  },
+  "devDependencies": {
+    "@remotion/eslint-config-flat": "4.0.525",
+    "@types/react": "19.2.7",
+    "@types/web": "0.0.166",
+    "eslint": "9.19.0",
+    "prettier": "3.8.1",
+    "typescript": "5.9.3"
+  },
+  "scripts": {
+    "dev": "remotion studio",
+    "studio": "remotion studio",
+    "build": "remotion bundle",
+    "render": "remotion render VizStackRoles out/viz-stack-roles.mp4",
+    "render:artifact": "remotion render VizStackRoles ../artifacts/viz-stack-roles.mp4",
+    "still": "remotion still VizStackRoles out/preview.png --frame=540",
+    "upgrade": "remotion upgrade",
+    "lint": "eslint src && tsc"
+  }
+}
