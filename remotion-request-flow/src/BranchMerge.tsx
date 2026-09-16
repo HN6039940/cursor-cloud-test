@@ -1,6 +1,7 @@
 import type { FC } from "react";
 import { Easing, interpolate, useCurrentFrame } from "remotion";
 import {
+  CENTER,
   FPS,
   HEIGHT,
   nearestNode,
@@ -50,8 +51,16 @@ const packetAlong = (
 
 export const BranchMerge: FC = () => {
   const frame = useCurrentFrame();
+  const aDone = frame >= A_START + A_DUR;
+  const bDone = frame >= B_START + B_DUR;
   const packetA = packetAlong(frame, A_START, A_DUR, PATH_A, A_COLOR);
   const packetB = packetAlong(frame, B_START, B_DUR, PATH_B, B_COLOR);
+  if (packetA && aDone && bDone) {
+    packetA.pos = { x: CENTER.db.x, y: CENTER.db.y - 11 };
+  }
+  if (packetB && aDone && bDone) {
+    packetB.pos = { x: CENTER.db.x, y: CENTER.db.y + 11 };
+  }
 
   const active: Partial<Record<NodeId, string>> = {};
   if (packetA) {
@@ -62,12 +71,10 @@ export const BranchMerge: FC = () => {
     active[id] = id === "db" && active.db ? "#E8F4FF" : B_COLOR;
   }
 
-  const aDone = frame >= A_START + A_DUR;
-  const bDone = frame >= B_START + B_DUR;
   let caption = "同じトポロジから分岐する";
   if (aDone && bDone) {
     caption = "DB で合流";
-  } else if (frame >= B_START + 80) {
+  } else if (frame >= B_START) {
     caption = "App A / App B で並列処理";
   } else if (frame >= A_START) {
     caption = "LB で振り分け";
