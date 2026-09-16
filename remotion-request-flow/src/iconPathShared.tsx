@@ -393,6 +393,55 @@ export type NodeFx = {
   status?: NodeStatus;
 };
 
+export type NodeFxMap = Partial<Record<NodeId, NodeFx>>;
+
+export const markSuccess = (
+  nodeFx: NodeFxMap,
+  id: NodeId,
+  opacity: number,
+  extra?: Pick<NodeFx, "status">,
+): void => {
+  const prev = nodeFx[id];
+  nodeFx[id] = {
+    ...extra,
+    glow: SUCCESS_COLOR,
+    badge: "check",
+    badgeOpacity: Math.max(prev?.badgeOpacity ?? 0, opacity),
+    dim: prev?.dim,
+  };
+};
+
+export const markFail = (
+  nodeFx: NodeFxMap,
+  id: NodeId,
+  opacity: number,
+  extra?: Pick<NodeFx, "dim">,
+): void => {
+  const prev = nodeFx[id];
+  nodeFx[id] = {
+    glow: FAIL_COLOR,
+    badge: "x",
+    badgeOpacity: opacity,
+    dim: extra?.dim ?? prev?.dim,
+  };
+};
+
+export const applyArrivalSuccess = (
+  nodeFx: NodeFxMap,
+  ids: readonly NodeId[],
+  arrival: Partial<Record<NodeId, number>>,
+  t: number,
+  done: boolean,
+  extra?: Pick<NodeFx, "status">,
+): void => {
+  for (const id of ids) {
+    const at = arrival[id];
+    if (at !== undefined && t >= at) {
+      markSuccess(nodeFx, id, badgeFromT(t, at, done), extra);
+    }
+  }
+};
+
 export const nodeStatus = (fx?: NodeFx): NodeStatus | undefined => {
   if (fx?.status) {
     return fx.status;

@@ -17,7 +17,7 @@ import {
   FAIL_COLOR,
   SUCCESS_COLOR,
   WIDTH,
-  badgeFromT,
+  applyArrivalSuccess,
   nearestNode,
   packetAlong,
   packetT,
@@ -35,6 +35,7 @@ const HIT_START = RESET_START + RESET_DUR;
 const HIT_DUR = 250;
 const HIT_HOLD = 90;
 const DURATION = HIT_START + HIT_DUR + HIT_HOLD;
+const MISS_SUCCESS_NODES: NodeId[] = PATH_MISS_NODES.filter((id) => id !== "cache");
 
 export const CacheHitMiss: FC = () => {
   const frame = useCurrentFrame();
@@ -67,37 +68,21 @@ export const CacheHitMiss: FC = () => {
   const nodeFx: Partial<Record<NodeId, NodeFx>> = {
     appb: { dim: 0.38 },
   };
-  const markSuccess = (id: NodeId, opacity: number) => {
-    const prev = nodeFx[id];
-    nodeFx[id] = {
-      status: "success",
-      glow: SUCCESS_COLOR,
-      badge: "check",
-      badgeOpacity: Math.max(prev?.badgeOpacity ?? 0, opacity),
-      dim: prev?.dim,
-    };
-  };
 
   if (inMiss || (inReset && frame < RESET_START + 24)) {
-    for (const id of PATH_MISS_NODES) {
-      if (tMiss < PATH_MISS_ARRIVAL[id]) {
-        continue;
-      }
-      if (id === "cache") {
-        nodeFx.cache = { status: "fail", glow: FAIL_COLOR, dim: nodeFx.cache?.dim };
-        continue;
-      }
-      markSuccess(id, badgeFromT(tMiss, PATH_MISS_ARRIVAL[id], missDone));
+    applyArrivalSuccess(nodeFx, MISS_SUCCESS_NODES, PATH_MISS_ARRIVAL, tMiss, missDone, {
+      status: "success",
+    });
+    if (tMiss >= PATH_MISS_ARRIVAL.cache) {
+      nodeFx.cache = { status: "fail", glow: FAIL_COLOR, dim: nodeFx.cache?.dim };
     }
   }
 
   if (inHit) {
     nodeFx.db = { dim: 0.32 };
-    for (const id of PATH_HIT_NODES) {
-      if (tHit >= PATH_HIT_ARRIVAL[id]) {
-        markSuccess(id, badgeFromT(tHit, PATH_HIT_ARRIVAL[id], hitDone));
-      }
-    }
+    applyArrivalSuccess(nodeFx, PATH_HIT_NODES, PATH_HIT_ARRIVAL, tHit, hitDone, {
+      status: "success",
+    });
   }
 
   const packet = packetHit ?? packetMiss;

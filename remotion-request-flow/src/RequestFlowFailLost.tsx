@@ -19,7 +19,9 @@ import {
   PATH_B_LOST_BRANCH_T,
   PATH_FAIL_BRANCH,
   SUCCESS_COLOR,
+  applyArrivalSuccess,
   badgeFromT,
+  markFail,
   nearestNode,
   packetAlong,
   packetT,
@@ -49,28 +51,12 @@ export const RequestFlowFailLost: FC = () => {
   }
 
   const nodeFx: Partial<Record<NodeId, NodeFx>> = {};
-  const markSuccess = (id: NodeId, opacity: number) => {
-    const prev = nodeFx[id];
-    nodeFx[id] = {
-      glow: SUCCESS_COLOR,
-      badge: "check",
-      badgeOpacity: Math.max(prev?.badgeOpacity ?? 0, opacity),
-    };
-  };
 
   if (frame >= A_START) {
-    for (const id of PATH_A_NODES) {
-      if (tA >= PATH_A_ARRIVAL[id]) {
-        markSuccess(id, badgeFromT(tA, PATH_A_ARRIVAL[id], aDone));
-      }
-    }
+    applyArrivalSuccess(nodeFx, PATH_A_NODES, PATH_A_ARRIVAL, tA, aDone);
   }
   if (frame >= B_START) {
-    for (const id of SUCCESS_ON_B) {
-      if (tB >= PATH_B_LOST_ARRIVAL[id]) {
-        markSuccess(id, badgeFromT(tB, PATH_B_LOST_ARRIVAL[id], bLost));
-      }
-    }
+    applyArrivalSuccess(nodeFx, SUCCESS_ON_B, PATH_B_LOST_ARRIVAL, tB, bLost);
     if (tB >= PATH_B_LOST_ARRIVAL.appb) {
       const dim = bLost
         ? interpolate(frame, [bArrive, bArrive + 28], [1, 0.7], {
@@ -78,12 +64,7 @@ export const RequestFlowFailLost: FC = () => {
             extrapolateRight: "clamp",
           })
         : 1;
-      nodeFx.appb = {
-        glow: FAIL_COLOR,
-        badge: "x",
-        badgeOpacity: badgeFromT(tB, PATH_B_LOST_ARRIVAL.appb, bLost),
-        dim,
-      };
+      markFail(nodeFx, "appb", badgeFromT(tB, PATH_B_LOST_ARRIVAL.appb, bLost), { dim });
     }
   }
 
