@@ -150,6 +150,8 @@ export const PATH_B: Pt[] = joinPolylines(
   PATH_TRUNK,
 );
 
+export const reversePts = (pts: Pt[]): Pt[] => [...pts].reverse();
+
 export const PATH_B_LOST: Pt[] = joinPolylines(
   PATH_CLIENT_LB,
   [LB_LEFT, LB_RIGHT],
@@ -160,9 +162,35 @@ export const PATH_B_LOST: Pt[] = joinPolylines(
 
 export const PATH_FAIL_BRANCH: Pt[] = joinPolylines(PATH_LB_APPB, [APPB_LEFT, CENTER.appb]);
 
+export const PATH_RETRY_FAIL: Pt[] = joinPolylines(
+  PATH_CLIENT_LB,
+  [LB_LEFT, LB_RIGHT],
+  PATH_LB_STUB,
+  PATH_LB_APPA,
+  [APPA_LEFT, CENTER.appa],
+);
+
+export const PATH_MISS: Pt[] = PATH_A;
+
+export const PATH_HIT: Pt[] = joinPolylines(
+  PATH_CLIENT_LB,
+  [LB_LEFT, LB_RIGHT],
+  PATH_LB_STUB,
+  PATH_LB_APPA,
+  [APPA_LEFT, APPA_RIGHT],
+  PATH_APPA_CACHE,
+  [CACHE_LEFT, CENTER.cache],
+  [CENTER.cache, CACHE_LEFT],
+  reversePts(PATH_APPA_CACHE),
+  [APPA_RIGHT, CENTER.appa],
+);
+
 export const PATH_A_NODES: NodeId[] = ["client", "lb", "appa", "cache", "db"];
 export const PATH_B_NODES: NodeId[] = ["client", "lb", "appb", "db"];
 export const PATH_B_LOST_NODES: NodeId[] = ["client", "lb", "appb"];
+export const PATH_RETRY_FAIL_NODES: NodeId[] = ["client", "lb", "appa"];
+export const PATH_MISS_NODES: NodeId[] = PATH_A_NODES;
+export const PATH_HIT_NODES: NodeId[] = ["client", "lb", "appa", "cache"];
 
 export const A_START = 175;
 export const A_DUR = 300;
@@ -238,8 +266,16 @@ export const PATH_A_ARRIVAL = arrivalT(PATH_A, PATH_A_NODES);
 export const PATH_B_ARRIVAL = arrivalT(PATH_B, PATH_B_NODES);
 export const PATH_B_LOST_ARRIVAL = arrivalT(PATH_B_LOST, PATH_B_LOST_NODES);
 export const PATH_B_LOST_BRANCH_T = closestProgress(PATH_B_LOST, BRANCH_PT);
+export const PATH_RETRY_FAIL_ARRIVAL = arrivalT(PATH_RETRY_FAIL, PATH_RETRY_FAIL_NODES);
+export const PATH_MISS_ARRIVAL = PATH_A_ARRIVAL;
+export const PATH_HIT_ARRIVAL = arrivalT(PATH_HIT, PATH_HIT_NODES);
+export const PATH_HIT_CACHE_T = closestProgress(PATH_HIT, CENTER.cache);
 
 export const B_LOST_DUR = Math.max(90, Math.round(B_DUR * (polylineLength(PATH_B_LOST) / polylineLength(PATH_B))));
+export const RETRY_FAIL_DUR = Math.max(
+  90,
+  Math.round(A_DUR * (polylineLength(PATH_RETRY_FAIL) / polylineLength(PATH_A))),
+);
 
 export const nearestNode = (pos: Pt, ids: readonly NodeId[]): NodeId => {
   let best: NodeId = ids[0];
@@ -362,6 +398,32 @@ export type OverlayPath = {
   opacity?: number;
 };
 
+export type CameraView = {
+  scale: number;
+  x: number;
+  y: number;
+};
+
+export type StageNote = {
+  x: number;
+  y: number;
+  text: string;
+  color?: string;
+  opacity?: number;
+};
+
+export const cameraFocus = (zoomT: number, target: Pt, peakScale: number): CameraView => {
+  const t = Math.max(0, Math.min(1, zoomT));
+  const scale = 1 + (peakScale - 1) * t;
+  const screenX = target.x + (WIDTH / 2 - target.x) * t;
+  const screenY = target.y + (HEIGHT / 2 - target.y) * t;
+  return {
+    scale,
+    x: screenX - target.x * scale,
+    y: screenY - target.y * scale,
+  };
+};
+
 const Badge: FC<{ kind: BadgeKind; opacity: number }> = ({ kind, opacity }) => {
   if (opacity <= 0) {
     return null;
@@ -399,112 +461,175 @@ export const IconPathStage: FC<{
   packets: PacketView[];
   nodeFx: Partial<Record<NodeId, NodeFx>>;
   overlays?: OverlayPath[];
-}> = ({ title, caption, packets, nodeFx, overlays = [] }) => {
+  camera?: CameraView;
+  freezeDraw?: boolean;
+  stageOpacity?: number;
+  notes?: StageNote[];
+  cameraChildren?: ReactNode;
+  titleOpacity?: number;
+  captionOpacity?: number;
+}> = ({
+  title,
+  caption,
+  packets,
+  nodeFx,
+  overlays = [],
+  camera,
+  freezeDraw = false,
+  stageOpacity = 1,
+  notes = [],
+  cameraChildren,
+  titleOpacity,
+  captionOpacity,
+}) => {
   const frame = useCurrentFrame();
-  const titleOpacity = interpolate(frame, [0, 16], [0, 1], {
+  const fadeIn = interpolate(frame, [0, 16], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
+  const titleShown = titleOpacity ?? fadeIn;
+  const captionShown = captionOpacity ?? fadeIn;
 
   return (
-    <AbsoluteFill style={{ background: "#121726", fontFamily: FONT_FAMILY }}>
-      <svg
-        viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-        width={WIDTH}
-        height={HEIGHT}
-        style={{ position: "absolute", inset: 0, overflow: "visible" }}
+    <AbsoluteFill style={{ background: "#121726", fontFamily: FONT_FAMILY, overflow: "hidden" }}>
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          opacity: stageOpacity,
+          transform: camera ? `translate(${camera.x}px, ${camera.y}px) scale(${camera.scale})` : undefined,
+          transformOrigin: "0 0",
+        }}
       >
-        {DRAW_PATHS.map((item, index) => {
-          const progress = interpolate(frame, [item.start, item.start + item.dur], [0, 1], {
-            easing: ease,
-            extrapolateLeft: "clamp",
-            extrapolateRight: "clamp",
-          });
-          return <Connector key={`base-${index}`} pts={item.pts} progress={progress} />;
-        })}
-        {overlays.map((item, index) => (
-          <Connector
-            key={`overlay-${index}`}
-            pts={item.pts}
-            progress={item.progress}
-            color={item.color}
-            width={item.width}
-            opacity={item.opacity}
-          />
-        ))}
-      </svg>
+        <svg
+          viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+          width={WIDTH}
+          height={HEIGHT}
+          style={{ position: "absolute", inset: 0, overflow: "visible" }}
+        >
+          {DRAW_PATHS.map((item, index) => {
+            const progress = freezeDraw
+              ? 1
+              : interpolate(frame, [item.start, item.start + item.dur], [0, 1], {
+                  easing: ease,
+                  extrapolateLeft: "clamp",
+                  extrapolateRight: "clamp",
+                });
+            return <Connector key={`base-${index}`} pts={item.pts} progress={progress} />;
+          })}
+          {overlays.map((item, index) => (
+            <Connector
+              key={`overlay-${index}`}
+              pts={item.pts}
+              progress={item.progress}
+              color={item.color}
+              width={item.width}
+              opacity={item.opacity}
+            />
+          ))}
+        </svg>
 
-      {NODES.map((node, index) => {
-        const appear = interpolate(frame, [8 + index * 7, 24 + index * 7], [0, 1], {
-          extrapolateLeft: "clamp",
-          extrapolateRight: "clamp",
-        });
-        const y = interpolate(appear, [0, 1], [14, 0]);
-        const fx = nodeFx[node.id];
-        const glow = fx?.glow;
-        const dim = fx?.dim ?? 1;
-        return (
-          <div
-            key={node.id}
-            style={{
-              position: "absolute",
-              left: node.x,
-              top: node.y + y,
-              width: CARD_W,
-              height: CARD_H,
-              borderRadius: 20,
-              background: "linear-gradient(180deg, #1A2438 0%, #151C2C 100%)",
-              border: glow ? `2px solid ${glow}` : "1.5px solid rgba(255,255,255,0.08)",
-              boxShadow: glow
-                ? `0 0 0 5px ${glow}33, 0 0 28px ${glow}88, 0 16px 36px rgba(0,0,0,0.28)`
-                : "0 16px 36px rgba(0,0,0,0.28)",
-              opacity: appear * dim,
-              overflow: "hidden",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-            }}
-          >
-            <div style={{ width: "100%", height: 6, background: node.accent }} />
-            <Img src={staticFile(node.file)} style={{ width: 64, height: 64, marginTop: 28 }} />
-            <Txt
+        {NODES.map((node, index) => {
+          const appear = freezeDraw
+            ? 1
+            : interpolate(frame, [8 + index * 7, 24 + index * 7], [0, 1], {
+                extrapolateLeft: "clamp",
+                extrapolateRight: "clamp",
+              });
+          const y = interpolate(appear, [0, 1], [14, 0]);
+          const fx = nodeFx[node.id];
+          const glow = fx?.glow;
+          const dim = fx?.dim ?? 1;
+          return (
+            <div
+              key={node.id}
               style={{
-                marginTop: 16,
-                fontFamily: FONT_FAMILY,
-                fontSize: 24,
-                fontWeight: 700,
-                color: "#EBF0FA",
-                letterSpacing: "0.03em",
+                position: "absolute",
+                left: node.x,
+                top: node.y + y,
+                width: CARD_W,
+                height: CARD_H,
+                borderRadius: 20,
+                background: "linear-gradient(180deg, #1A2438 0%, #151C2C 100%)",
+                border: glow ? `2px solid ${glow}` : "1.5px solid rgba(255,255,255,0.08)",
+                boxShadow: glow
+                  ? `0 0 0 5px ${glow}33, 0 0 28px ${glow}88, 0 16px 36px rgba(0,0,0,0.28)`
+                  : "0 16px 36px rgba(0,0,0,0.28)",
+                opacity: appear * dim,
+                overflow: "hidden",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
               }}
             >
-              {node.label}
-            </Txt>
-            {fx?.badge ? <Badge kind={fx.badge} opacity={fx.badgeOpacity ?? 1} /> : null}
-          </div>
-        );
-      })}
+              <div style={{ width: "100%", height: 6, background: node.accent }} />
+              <Img src={staticFile(node.file)} style={{ width: 64, height: 64, marginTop: 28 }} />
+              <Txt
+                style={{
+                  marginTop: 16,
+                  fontFamily: FONT_FAMILY,
+                  fontSize: 24,
+                  fontWeight: 700,
+                  color: "#EBF0FA",
+                  letterSpacing: "0.03em",
+                }}
+              >
+                {node.label}
+              </Txt>
+              {fx?.badge ? <Badge kind={fx.badge} opacity={fx.badgeOpacity ?? 1} /> : null}
+            </div>
+          );
+        })}
 
-      {packets.map((packet, index) => {
-        const size = 18 * (packet.scale ?? 1);
-        return (
-          <div
-            key={index}
+        {packets.map((packet, index) => {
+          const size = 18 * (packet.scale ?? 1);
+          return (
+            <div
+              key={index}
+              style={{
+                position: "absolute",
+                left: packet.pos.x,
+                top: packet.pos.y,
+                width: size,
+                height: size,
+                marginLeft: -size / 2,
+                marginTop: -size / 2,
+                borderRadius: "50%",
+                background: packet.color,
+                opacity: packet.opacity,
+                boxShadow: `0 0 0 4px ${packet.color}33, 0 0 22px ${packet.color}`,
+              }}
+            />
+          );
+        })}
+
+        {notes.map((note, index) => (
+          <Txt
+            key={`note-${index}`}
             style={{
               position: "absolute",
-              left: packet.pos.x,
-              top: packet.pos.y,
-              width: size,
-              height: size,
-              marginLeft: -size / 2,
-              marginTop: -size / 2,
-              borderRadius: "50%",
-              background: packet.color,
-              opacity: packet.opacity,
-              boxShadow: `0 0 0 4px ${packet.color}33, 0 0 22px ${packet.color}`,
+              left: note.x,
+              top: note.y,
+              padding: "6px 14px",
+              borderRadius: 999,
+              background: "#1A2438",
+              border: `1.5px solid ${note.color ?? A_COLOR}`,
+              color: note.color ?? A_COLOR,
+              fontFamily: FONT_FAMILY,
+              fontSize: 20,
+              fontWeight: 700,
+              letterSpacing: "0.08em",
+              opacity: note.opacity ?? 1,
+              boxShadow: `0 0 16px ${note.color ?? A_COLOR}55`,
+              whiteSpace: "nowrap",
+              transform: "translateX(-50%)",
             }}
-          />
-        );
-      })}
+          >
+            {note.text}
+          </Txt>
+        ))}
+        {cameraChildren}
+      </div>
 
       <Txt
         style={{
@@ -518,7 +643,7 @@ export const IconPathStage: FC<{
           fontWeight: 700,
           color: "#F4F7FF",
           letterSpacing: "0.04em",
-          opacity: titleOpacity,
+          opacity: titleShown,
         }}
       >
         {title}
@@ -534,7 +659,7 @@ export const IconPathStage: FC<{
           fontSize: 26,
           fontWeight: 500,
           color: "#C5D3EE",
-          opacity: titleOpacity,
+          opacity: captionShown,
         }}
       >
         {caption}
