@@ -62,7 +62,7 @@ const Code: FC<{ children: ReactNode; style?: CSSProperties }> = ({
         color: INK,
         display: "inline-flex",
         alignItems: "center",
-        gap: 8,
+        gap: 2,
         whiteSpace: "nowrap",
         ...style,
       }}
@@ -177,15 +177,16 @@ const FrameChrome: FC<{
         <div style={{ marginTop: 8, fontSize: 28, color: MUTED }}>{hint}</div>
       </div>
       <div
+        className="method-row"
         style={{
           position: "absolute",
           top: 390,
-          left: 48,
-          right: 48,
-          display: "flex",
+          left: 40,
+          right: 40,
+          display: "grid",
+          gridTemplateColumns: "minmax(0, 1fr) auto auto minmax(0, 1fr)",
           alignItems: "center",
-          justifyContent: "center",
-          gap: 28,
+          columnGap: 20,
         }}
       >
         {children}
@@ -255,10 +256,11 @@ const MapScene: FC = () => {
         ))}
       </div>
       <Code style={{ opacity: methodOp }}>
-        .map(
+        {".map("}
         <Emoji name="dog" size={44} />
         {" => "}
-        <Emoji name="puppy" size={44} />)
+        <Emoji name="puppy" size={44} />
+        {")"}
       </Code>
       <Arrow opacity={resultOp} />
       <div style={{ display: "flex", gap: 8, opacity: resultOp }}>
@@ -619,8 +621,8 @@ const Intro: FC = () => {
         gap: 28,
       }}
     >
-      <div style={{ fontSize: 28, fontWeight: 600, color: MUTED }}>
-        JavaScript
+      <div style={{ fontSize: 24, fontWeight: 600, color: MUTED, letterSpacing: 0.02 }}>
+        JavaScript Array.prototype
       </div>
       <div style={{ fontSize: 72, fontWeight: 800, letterSpacing: -1 }}>
         Array Methods
@@ -628,10 +630,13 @@ const Intro: FC = () => {
       <div
         style={{
           display: "flex",
-          gap: 18,
+          flexWrap: "wrap",
+          justifyContent: "center",
+          gap: 14,
           marginTop: 24,
+          maxWidth: 1600,
           fontFamily: CODE_FONT,
-          fontSize: 28,
+          fontSize: 26,
           fontWeight: 700,
         }}
       >
