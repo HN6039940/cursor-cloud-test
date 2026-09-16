@@ -50,23 +50,53 @@ const LIFE_DRAW = 36;
 const DRAW = 26;
 const HOLD = 22;
 const STEP = DRAW + HOLD;
-const ESTABLISH_HOLD = 30;
-const DATA_DUR = 42;
-const FINAL_HOLD = 96;
 
 const lifeStart = INTRO_END;
 const lifeEnd = lifeStart + LIFE_DRAW;
-const m1 = lifeEnd;
+
+const CAM_IN = 40;
+const CAM_TO_DATA = 34;
+const CAM_TO_TEAR = 38;
+const CAM_OUT = 42;
+const GREEN_HOLD = 18;
+const DIM_DUR = 16;
+const DATA_HOLD = 32;
+const FINAL_HOLD = 78;
+
+const camEstStart = lifeEnd - 8;
+const camEstEnd = camEstStart + CAM_IN;
+const m1 = camEstEnd;
 const m2 = m1 + STEP;
 const m3 = m2 + STEP;
 const establishAt = m3 + STEP;
-const dataAt = establishAt + ESTABLISH_HOLD;
-const m4 = dataAt + DATA_DUR;
+const dimEstStart = establishAt + GREEN_HOLD;
+const camDataStart = dimEstStart + 8;
+const camDataEnd = camDataStart + CAM_TO_DATA;
+const dataAt = camDataStart + 6;
+const camTearStart = camDataEnd + DATA_HOLD;
+const camTearEnd = camTearStart + CAM_TO_TEAR;
+const m4 = camTearEnd;
 const m5 = m4 + STEP;
 const m6 = m5 + STEP;
 const m7 = m6 + STEP;
 const teardownAt = m7 + STEP;
-export const DURATION = teardownAt + FINAL_HOLD;
+const camOutStart = teardownAt + GREEN_HOLD;
+const camOutEnd = camOutStart + CAM_OUT;
+export const DURATION = camOutEnd + FINAL_HOLD;
+
+type Pt = { x: number; y: number };
+type CameraView = { scale: number; x: number; y: number };
+
+const FOCUS_X = 1000;
+const EST_Y = (MSG_YS[0] + MSG_YS[2]) / 2;
+const DATA_Y = (DATA_TOP + DATA_BOTTOM) / 2;
+const TEAR_Y = (TEAR_YS[0] + TEAR_YS[3]) / 2;
+const CAM_TEAR_Y = TEAR_Y + 28;
+const PEAK_EST = 1.52;
+const PEAK_DATA = 1.18;
+const PEAK_TEAR = 1.55;
+const DIM = 0.34;
+const IDENTITY_CAM: CameraView = { scale: 1, x: 0, y: 0 };
 
 type Dir = "ltr" | "rtl";
 
@@ -109,6 +139,67 @@ const drawT = (frame: number, start: number) => {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
+};
+
+const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
+
+const cameraFocus = (zoomT: number, target: Pt, peakScale: number): CameraView => {
+  const t = clamp01(zoomT);
+  const scale = 1 + (peakScale - 1) * t;
+  const screenX = target.x + (WIDTH / 2 - target.x) * t;
+  const screenY = target.y + (HEIGHT / 2 - target.y) * t;
+  return {
+    scale,
+    x: screenX - target.x * scale,
+    y: screenY - target.y * scale,
+  };
+};
+
+const lerpCam = (from: CameraView, to: CameraView, t: number): CameraView => {
+  const u = clamp01(t);
+  return {
+    scale: from.scale + (to.scale - from.scale) * u,
+    x: from.x + (to.x - from.x) * u,
+    y: from.y + (to.y - from.y) * u,
+  };
+};
+
+const linearT = (frame: number, start: number, end: number) =>
+  interpolate(frame, [start, end], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+
+const FOCUS_EST = cameraFocus(1, { x: FOCUS_X, y: EST_Y }, PEAK_EST);
+const FOCUS_DATA = cameraFocus(1, { x: FOCUS_X, y: DATA_Y }, PEAK_DATA);
+const FOCUS_TEAR = cameraFocus(1, { x: FOCUS_X, y: CAM_TEAR_Y }, PEAK_TEAR);
+
+const cameraAt = (frame: number): CameraView => {
+  if (frame < camEstStart) {
+    return IDENTITY_CAM;
+  }
+  if (frame < camEstEnd) {
+    return lerpCam(IDENTITY_CAM, FOCUS_EST, linearT(frame, camEstStart, camEstEnd));
+  }
+  if (frame < camDataStart) {
+    return FOCUS_EST;
+  }
+  if (frame < camDataEnd) {
+    return lerpCam(FOCUS_EST, FOCUS_DATA, linearT(frame, camDataStart, camDataEnd));
+  }
+  if (frame < camTearStart) {
+    return FOCUS_DATA;
+  }
+  if (frame < camTearEnd) {
+    return lerpCam(FOCUS_DATA, FOCUS_TEAR, linearT(frame, camTearStart, camTearEnd));
+  }
+  if (frame < camOutStart) {
+    return FOCUS_TEAR;
+  }
+  if (frame < camOutEnd) {
+    return lerpCam(FOCUS_TEAR, IDENTITY_CAM, linearT(frame, camOutStart, camOutEnd));
+  }
+  return IDENTITY_CAM;
 };
 
 const Brace: FC<{
@@ -314,11 +405,33 @@ export const TcpSequenceDiagram: FC = () => {
     extrapolateRight: "clamp",
   });
 
-  const establishOpacity = fade(frame, m1, 14);
-  const teardownOpacity = fade(frame, m4, 14);
+  const establishAppear = fade(frame, m1, 14);
+  const teardownAppear = fade(frame, m4, 14);
+  const establishDim = interpolate(frame, [dimEstStart, dimEstStart + DIM_DUR], [1, DIM], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+  const dataDim = interpolate(frame, [m4 - 6, m4 + 12], [1, DIM], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+  const establishOpacity = establishAppear * establishDim;
+  const dataOpacity = dataT * dataDim;
+  const dataLabelOp = dataLabel * dataDim;
+  const teardownOpacity = teardownAppear;
   const establishColor = established ? SUCCESS_COLOR : PATH_COLOR;
   const teardownColor = tornDown ? SUCCESS_COLOR : PATH_COLOR;
-  const nodeGlow = tornDown || established ? SUCCESS_COLOR : undefined;
+  const nodeGlow = tornDown ? SUCCESS_COLOR : established && frame < camTearStart ? SUCCESS_COLOR : undefined;
+  const cam = cameraAt(frame);
+  const titleOp =
+    intro *
+    interpolate(cam.scale, [1, 1.12, 1.35], [1, 0.42, 0.1], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp",
+    });
+
+  const bandDim = (group: "establish" | "teardown") =>
+    group === "establish" ? establishDim : 1;
 
   return (
     <AbsoluteFill style={{ background: "#121726", fontFamily: FONT_FAMILY, overflow: "hidden" }}>
@@ -349,12 +462,21 @@ export const TcpSequenceDiagram: FC = () => {
           fontWeight: 700,
           color: "#F4F7FF",
           letterSpacing: "0.08em",
-          opacity: intro,
+          opacity: titleOp,
+          zIndex: 2,
         }}
       >
         TCP シーケンス図
       </Txt>
 
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          transform: `translate(${cam.x}px, ${cam.y}px) scale(${cam.scale})`,
+          transformOrigin: "0 0",
+        }}
+      >
       <div
         style={{
           position: "absolute",
@@ -468,7 +590,7 @@ export const TcpSequenceDiagram: FC = () => {
             strokeWidth="2"
             strokeDasharray="10 8"
             rx="6"
-            opacity={dataT}
+            opacity={dataOpacity}
           />
         ) : null}
 
@@ -483,6 +605,8 @@ export const TcpSequenceDiagram: FC = () => {
           const x1 = msg.dir === "ltr" ? LEFT_X + 8 : RIGHT_X - 8;
           const x2 = msg.dir === "ltr" ? RIGHT_X - 8 : LEFT_X + 8;
           const len = Math.abs(x2 - x1);
+          const dim = bandDim(msg.group);
+          const baseOp = groupedGreen ? 0.95 : t >= 1 ? 0.82 : 1;
           return (
             <line
               key={`arr-${msg.n}`}
@@ -496,7 +620,7 @@ export const TcpSequenceDiagram: FC = () => {
               strokeDasharray={len}
               strokeDashoffset={len * (1 - t)}
               markerEnd={t > 0.9 ? `url(#seq-arrow-${msg.n})` : undefined}
-              opacity={groupedGreen ? 0.95 : t >= 1 ? 0.82 : 1}
+              opacity={baseOp * dim}
             />
           );
         })}
@@ -508,7 +632,7 @@ export const TcpSequenceDiagram: FC = () => {
           color={establishColor}
           opacity={establishOpacity}
         />
-        <Brace x={BRACE_X} y1={DATA_TOP} y2={DATA_BOTTOM} color={MUTED} opacity={dataT} />
+        <Brace x={BRACE_X} y1={DATA_TOP} y2={DATA_BOTTOM} color={MUTED} opacity={dataOpacity} />
         <Brace
           x={BRACE_X}
           y1={TEAR_YS[0] - 18}
@@ -537,7 +661,7 @@ export const TcpSequenceDiagram: FC = () => {
 
       {MESSAGES.map((msg) => {
         const t = drawT(frame, msg.start);
-        const labelOp = fade(frame, msg.start, 10);
+        const labelOp = fade(frame, msg.start, 10) * bandDim(msg.group);
         if (labelOp <= 0) {
           return null;
         }
@@ -572,25 +696,26 @@ export const TcpSequenceDiagram: FC = () => {
 
       <GroupLabel
         text="コネクション確立"
-        y={(MSG_YS[0] + MSG_YS[2]) / 2}
+        y={EST_Y}
         color={establishColor}
         opacity={establishOpacity}
-        check={establishFade}
+        check={establishFade * establishDim}
       />
       <GroupLabel
         text="データのやり取り"
-        y={(DATA_TOP + DATA_BOTTOM) / 2}
+        y={DATA_Y}
         color={MUTED}
-        opacity={dataLabel}
+        opacity={dataLabelOp}
         check={0}
       />
       <GroupLabel
         text="コネクション切断"
-        y={(TEAR_YS[0] + TEAR_YS[3]) / 2}
+        y={TEAR_Y}
         color={teardownColor}
         opacity={teardownOpacity}
         check={teardownFade}
       />
+      </div>
     </AbsoluteFill>
   );
 };
