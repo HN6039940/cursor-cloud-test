@@ -47,56 +47,60 @@ export const CENTER: Record<NodeId, Pt> = {
   db: { x: 1235, y: 360 },
 };
 
-export const PATH_CLIENT_LB: Pt[] = [CENTER.client, CENTER.lb];
-export const PATH_LB_APPA: Pt[] = [
-  CENTER.lb,
-  { x: 474, y: 360 },
-  { x: 474, y: 284 },
-  { x: 675, y: 284 },
-  CENTER.appa,
-];
-export const PATH_LB_APPB: Pt[] = [
-  CENTER.lb,
-  { x: 474, y: 360 },
-  { x: 474, y: 436 },
-  { x: 675, y: 436 },
-  CENTER.appb,
-];
-export const PATH_APPA_DB: Pt[] = [
-  CENTER.appa,
-  { x: 675, y: 244 },
-  { x: 1026, y: 244 },
-  { x: 1026, y: 360 },
-  CENTER.db,
-];
-export const PATH_APPB_DB: Pt[] = [
-  CENTER.appb,
-  { x: 1156, y: 540 },
-  { x: 1156, y: 360 },
-  CENTER.db,
-];
-export const PATH_APPA_CACHE: Pt[] = [CENTER.appa, CENTER.cache];
-export const PATH_CACHE_DB: Pt[] = [
-  CENTER.cache,
-  { x: 1034, y: 180 },
-  { x: 1034, y: 360 },
-  CENTER.db,
-];
-export const PATH_CACHE_APPA: Pt[] = [CENTER.cache, CENTER.appa];
+const CLIENT_RIGHT: Pt = { x: 210, y: 360 };
+const LB_LEFT: Pt = { x: 320, y: 360 };
+const LB_RIGHT: Pt = { x: 470, y: 360 };
+const APPA_LEFT: Pt = { x: 600, y: 180 };
+const APPA_RIGHT: Pt = { x: 750, y: 180 };
+const APPB_LEFT: Pt = { x: 600, y: 540 };
+const APPB_RIGHT: Pt = { x: 750, y: 540 };
+const CACHE_LEFT: Pt = { x: 880, y: 180 };
+const CACHE_RIGHT: Pt = { x: 1030, y: 180 };
+const DB_LEFT: Pt = { x: 1160, y: 360 };
+const ELBOW_APPA: Pt = { x: 470, y: 180 };
+const ELBOW_APPB: Pt = { x: 470, y: 540 };
+const APPA_DB_H: Pt = { x: 750, y: 236 };
+const DB_V: Pt = { x: 1156, y: 360 };
+const CACHE_DB_ELBOW: Pt = { x: 1156, y: 180 };
 
-export const PATH_A = [...PATH_CLIENT_LB, ...PATH_LB_APPA.slice(1), ...PATH_APPA_DB.slice(1)];
-export const PATH_B = [...PATH_CLIENT_LB, ...PATH_LB_APPB.slice(1), ...PATH_APPB_DB.slice(1)];
-export const PATH_MISS = [
-  ...PATH_CLIENT_LB,
-  ...PATH_LB_APPA.slice(1),
-  ...PATH_APPA_CACHE.slice(1),
-  ...PATH_CACHE_DB.slice(1),
+export const PATH_CLIENT_LB: Pt[] = [CLIENT_RIGHT, LB_LEFT];
+export const PATH_LB_APPA: Pt[] = [LB_RIGHT, ELBOW_APPA, APPA_LEFT];
+export const PATH_LB_APPB: Pt[] = [LB_RIGHT, ELBOW_APPB, APPB_LEFT];
+export const PATH_APPA_DB: Pt[] = [
+  APPA_RIGHT,
+  APPA_DB_H,
+  { x: 1156, y: 236 },
+  DB_V,
+  DB_LEFT,
 ];
-export const PATH_HIT = [
+export const PATH_APPB_DB: Pt[] = [APPB_RIGHT, { x: 1156, y: 540 }, DB_V, DB_LEFT];
+export const PATH_APPA_CACHE: Pt[] = [APPA_RIGHT, CACHE_LEFT];
+export const PATH_CACHE_DB: Pt[] = [CACHE_RIGHT, CACHE_DB_ELBOW, DB_V, DB_LEFT];
+export const PATH_CACHE_APPA: Pt[] = [CACHE_LEFT, APPA_RIGHT];
+
+export const PATH_A: Pt[] = [
   ...PATH_CLIENT_LB,
-  ...PATH_LB_APPA.slice(1),
-  ...PATH_APPA_CACHE.slice(1),
-  ...PATH_CACHE_APPA.slice(1),
+  ...PATH_LB_APPA,
+  APPA_RIGHT,
+  ...PATH_APPA_DB.slice(1),
+];
+export const PATH_B: Pt[] = [
+  ...PATH_CLIENT_LB,
+  ...PATH_LB_APPB,
+  APPB_RIGHT,
+  ...PATH_APPB_DB.slice(1),
+];
+export const PATH_MISS: Pt[] = [
+  ...PATH_CLIENT_LB,
+  ...PATH_LB_APPA,
+  ...PATH_APPA_CACHE,
+  ...PATH_CACHE_DB,
+];
+export const PATH_HIT: Pt[] = [
+  ...PATH_CLIENT_LB,
+  ...PATH_LB_APPA,
+  ...PATH_APPA_CACHE,
+  ...PATH_CACHE_APPA,
 ];
 
 export const polylineLength = (pts: Pt[]) => {
