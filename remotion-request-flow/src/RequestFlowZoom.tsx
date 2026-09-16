@@ -28,24 +28,28 @@ const LB_CENTER = {
 };
 const SCREEN_CENTER = { x: WIDTH / 2, y: HEIGHT / 2 };
 
-const ZOOM_IN = { start: 90, end: 240 };
-const HOLD_ZOOM = { start: 240, end: 300 };
-const CROSS_IN = { start: 300, end: 375 };
-const HOLD_DETAIL = { start: 375, end: 540 };
-const CROSS_OUT = { start: 540, end: 600 };
-const ZOOM_OUT = { start: 600, end: 720 };
+const SPEED = 1.2;
+const dur = (frames: number) => Math.round(frames / SPEED);
+
+const INTRO = dur(90);
+const ZOOM_IN = { start: INTRO, end: INTRO + dur(150) };
+const HOLD_ZOOM = { start: ZOOM_IN.end, end: ZOOM_IN.end + dur(60) };
+const CROSS_IN = { start: HOLD_ZOOM.end, end: HOLD_ZOOM.end + dur(75) };
+const HOLD_DETAIL = { start: CROSS_IN.end, end: CROSS_IN.end + dur(165) };
+const CROSS_OUT = { start: HOLD_DETAIL.end, end: HOLD_DETAIL.end + dur(60) };
+const ZOOM_OUT = { start: CROSS_OUT.end, end: CROSS_OUT.end + dur(120) };
 const PEAK_SCALE = 4.15;
 
 const easeInOut = Easing.inOut(Easing.cubic);
 
 const cameraAt = (zoomT: number) => {
   const scale = interpolate(zoomT, [0, 1], [1, PEAK_SCALE]);
-  const focusX = interpolate(zoomT, [0, 1], [SCREEN_CENTER.x, LB_CENTER.x]);
-  const focusY = interpolate(zoomT, [0, 1], [SCREEN_CENTER.y, LB_CENTER.y]);
+  const lbScreenX = interpolate(zoomT, [0, 1], [LB_CENTER.x, SCREEN_CENTER.x]);
+  const lbScreenY = interpolate(zoomT, [0, 1], [LB_CENTER.y, SCREEN_CENTER.y]);
   return {
     scale,
-    x: SCREEN_CENTER.x - focusX * scale,
-    y: SCREEN_CENTER.y - focusY * scale,
+    x: lbScreenX - LB_CENTER.x * scale,
+    y: lbScreenY - LB_CENTER.y * scale,
   };
 };
 
@@ -190,5 +194,5 @@ export const REQUEST_FLOW_ZOOM = {
   fps: FPS,
   width: WIDTH,
   height: HEIGHT,
-  durationInFrames: 720,
+  durationInFrames: ZOOM_OUT.end,
 } as const;

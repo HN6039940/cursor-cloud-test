@@ -32,7 +32,7 @@ npm run studio
 `npm run dev` でも同じ Studio が起動します。ブラウザで Composition を選んでください。
 
 - `RequestFlow` — 1920×1080 / 25 秒 / 30fps
-- `RequestFlowZoom` — 1920×1080 / 24 秒 / 30fps（overview SVG → LB へズーム → 詳細 SVG）
+- `RequestFlowZoom` — 1920×1080 / 約 20 秒 / 30fps（overview SVG → LB へ直線ズーム → 詳細 SVG）
 
 ## レンダー（MP4）
 
@@ -69,14 +69,14 @@ npx remotion render RequestFlowZoom out/request-flow-zoom.mp4 --browser-executab
 成果物のコピー:
 
 - `artifacts/request-flow.mp4`（1920×1080、25 秒、H.264）
-- `artifacts/request-flow-zoom.mp4`（1920×1080、24 秒、H.264）
+- `artifacts/request-flow-zoom.mp4`（1920×1080、約 20 秒、H.264）
 
 ## Composition
 
 | ID | 尺 | 解像度 | 内容 |
 | --- | --- | --- | --- |
 | `RequestFlow` | 25s（750 frames @ 30fps） | 1920×1080 | Client / LB / App / DB が順にフェードインし、矢印が描画されたあと、ハイライトが Client→LB→App→DB へ一度流れる |
-| `RequestFlowZoom` | 24s（720 frames @ 30fps） | 1920×1080 | `public/overview-request-flow.svg` を表示し、LB へカメラズームしたあと `public/lb-detail.svg`（「LB の中身」）へクロスフェード。最後に全体像へ戻る |
+| `RequestFlowZoom` | 約 20s（601 frames @ 30fps） | 1920×1080 | `public/overview-request-flow.svg` を表示し、LB が直線で画面中央へ向かうカメラズームのあと `public/lb-detail.svg`（「LB の中身」）へクロスフェード。最後に全体像へ戻る |
 
 画面タイトル: **リクエストがサーバに届く流れ**
 
