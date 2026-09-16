@@ -18,7 +18,7 @@ import {
   PATH_B_ARRIVAL,
   PATH_B_NODES,
   SUCCESS_COLOR,
-  badgeFromT,
+  applyArrivalSuccess,
   nearestNode,
   packetAlong,
   packetT,
@@ -45,28 +45,12 @@ export const IconPathBranch: FC = () => {
   }
 
   const nodeFx: Partial<Record<NodeId, NodeFx>> = {};
-  const markSuccess = (id: NodeId, opacity: number) => {
-    const prev = nodeFx[id];
-    nodeFx[id] = {
-      glow: SUCCESS_COLOR,
-      badge: "check",
-      badgeOpacity: Math.max(prev?.badgeOpacity ?? 0, opacity),
-    };
-  };
 
   if (frame >= A_START) {
-    for (const id of PATH_A_NODES) {
-      if (tA >= PATH_A_ARRIVAL[id]) {
-        markSuccess(id, badgeFromT(tA, PATH_A_ARRIVAL[id], aDone));
-      }
-    }
+    applyArrivalSuccess(nodeFx, PATH_A_NODES, PATH_A_ARRIVAL, tA, aDone);
   }
   if (frame >= B_START) {
-    for (const id of PATH_B_NODES) {
-      if (tB >= PATH_B_ARRIVAL[id]) {
-        markSuccess(id, badgeFromT(tB, PATH_B_ARRIVAL[id], bDone));
-      }
-    }
+    applyArrivalSuccess(nodeFx, PATH_B_NODES, PATH_B_ARRIVAL, tB, bDone);
   }
 
   if (!bothDone) {

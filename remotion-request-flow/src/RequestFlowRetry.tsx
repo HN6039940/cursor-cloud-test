@@ -19,7 +19,9 @@ import {
   RETRY_FAIL_DUR,
   SUCCESS_COLOR,
   WIDTH,
+  applyArrivalSuccess,
   badgeFromT,
+  markFail,
   nearestNode,
   packetAlong,
   packetT,
@@ -63,37 +65,16 @@ export const RequestFlowRetry: FC = () => {
   const nodeFx: Partial<Record<NodeId, NodeFx>> = {
     appb: { dim: 0.38 },
   };
-  const markSuccess = (id: NodeId, opacity: number) => {
-    const prev = nodeFx[id];
-    nodeFx[id] = {
-      glow: SUCCESS_COLOR,
-      badge: "check",
-      badgeOpacity: Math.max(prev?.badgeOpacity ?? 0, opacity),
-      dim: prev?.dim,
-    };
-  };
 
   if (frame >= FAIL_START && !retrying) {
-    for (const id of SUCCESS_ON_FAIL) {
-      if (tFail >= PATH_RETRY_FAIL_ARRIVAL[id]) {
-        markSuccess(id, badgeFromT(tFail, PATH_RETRY_FAIL_ARRIVAL[id], failArrive));
-      }
-    }
+    applyArrivalSuccess(nodeFx, SUCCESS_ON_FAIL, PATH_RETRY_FAIL_ARRIVAL, tFail, failArrive);
     if (tFail >= PATH_RETRY_FAIL_ARRIVAL.appa) {
-      nodeFx.appa = {
-        glow: FAIL_COLOR,
-        badge: "x",
-        badgeOpacity: badgeFromT(tFail, PATH_RETRY_FAIL_ARRIVAL.appa, failArrive),
-      };
+      markFail(nodeFx, "appa", badgeFromT(tFail, PATH_RETRY_FAIL_ARRIVAL.appa, failArrive));
     }
   }
 
   if (retrying) {
-    for (const id of PATH_A_NODES) {
-      if (tRetry >= PATH_A_ARRIVAL[id]) {
-        markSuccess(id, badgeFromT(tRetry, PATH_A_ARRIVAL[id], retryDone));
-      }
-    }
+    applyArrivalSuccess(nodeFx, PATH_A_NODES, PATH_A_ARRIVAL, tRetry, retryDone);
   }
 
   if (packetFail && !failArrive) {
