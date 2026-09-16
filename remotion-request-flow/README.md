@@ -33,6 +33,7 @@ npm run studio
 
 - `RequestFlow` — 1920×1080 / 25 秒 / 30fps
 - `RequestFlowZoom` — 1920×1080 / 約 20 秒 / 30fps（overview SVG → LB へ直線ズーム → 詳細 SVG）
+- `BoundaryProbe` — 1920×1080 / 20 秒 / 30fps（Figma は箱と辺のみ。ラベル・発光・パケット・キャプションは Remotion）
 
 ## レンダー（MP4）
 
@@ -50,11 +51,19 @@ cd remotion-request-flow
 npm run render:zoom
 ```
 
+境界プローブ（SVG=箱/辺、Remotion=ラベル/発光/パケット）:
+
+```bash
+cd remotion-request-flow
+npm run render:probe
+```
+
 同等の直接コマンド:
 
 ```bash
 npx remotion render RequestFlow out/request-flow.mp4
 npx remotion render RequestFlowZoom out/request-flow-zoom.mp4
+npx remotion render BoundaryProbe out/boundary-probe.mp4
 ```
 
 Chrome のパスを明示する場合（Linux 例）:
@@ -62,6 +71,7 @@ Chrome のパスを明示する場合（Linux 例）:
 ```bash
 npx remotion render RequestFlow out/request-flow.mp4 --browser-executable=/usr/bin/google-chrome-stable
 npx remotion render RequestFlowZoom out/request-flow-zoom.mp4 --browser-executable=/usr/bin/google-chrome-stable
+npx remotion render BoundaryProbe out/boundary-probe.mp4 --browser-executable=/usr/bin/google-chrome-stable
 ```
 
 出力先は `out/` です（gitignore 対象）。このクラウド環境では上記コマンドでレンダーに成功しています。
@@ -70,6 +80,7 @@ npx remotion render RequestFlowZoom out/request-flow-zoom.mp4 --browser-executab
 
 - `artifacts/request-flow.mp4`（1920×1080、25 秒、H.264）
 - `artifacts/request-flow-zoom.mp4`（1920×1080、約 20 秒、H.264）
+- `artifacts/boundary-probe.mp4`（1920×1080、20 秒、H.264）
 
 ## Composition
 
@@ -77,6 +88,7 @@ npx remotion render RequestFlowZoom out/request-flow-zoom.mp4 --browser-executab
 | --- | --- | --- | --- |
 | `RequestFlow` | 25s（750 frames @ 30fps） | 1920×1080 | Client / LB / App / DB が順にフェードインし、矢印が描画されたあと、ハイライトが Client→LB→App→DB へ一度流れる |
 | `RequestFlowZoom` | 約 20s（601 frames @ 30fps） | 1920×1080 | `public/overview-request-flow.svg` を表示し、LB が直線で画面中央へ向かうカメラズームのあと `public/lb-detail.svg`（「LB の中身」）へクロスフェード。最後に全体像へ戻る |
+| `BoundaryProbe` | 20s（600 frames @ 30fps） | 1920×1080 | `public/parts-only-flow.svg`（箱と辺のみ）の上に Remotion がラベル・発光・パケット・日本語キャプションを重ねる |
 
 画面タイトル: **リクエストがサーバに届く流れ**
 
@@ -86,3 +98,4 @@ Figma から書き出した図を `public/` に置いています。
 
 - `public/overview-request-flow.svg` — Client → LB → App → DB（1200×400）。ズーム対象は LB ボックス
 - `public/lb-detail.svg` — Health Check → Router → Target Pool（960×540）、タイトル「LB の中身」
+- `public/parts-only-flow.svg` — Client / LB / App / DB の箱と辺だけ（1200×400、テキストなし）。ラベル等は `BoundaryProbe` が描画

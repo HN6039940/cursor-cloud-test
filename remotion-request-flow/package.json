@@ -25,6 +25,7 @@
     "build": "remotion bundle",
     "render": "remotion render RequestFlow out/request-flow.mp4",
     "render:zoom": "remotion render RequestFlowZoom out/request-flow-zoom.mp4",
+    "render:probe": "remotion render BoundaryProbe out/boundary-probe.mp4",
     "upgrade": "remotion upgrade",
     "lint": "eslint src && tsc"
   }
