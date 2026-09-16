@@ -151,8 +151,9 @@ export const BoundaryProbe: FC = () => {
           width: node.w * FIT,
           height: node.h * FIT,
           display: "flex",
-          alignItems: "center",
+          alignItems: "flex-start",
           justifyContent: "center",
+          paddingTop: 28,
           borderRadius: 24,
           border: isActive ? `3px solid ${node.color}` : "3px solid transparent",
           boxShadow: isActive
