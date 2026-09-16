@@ -24,6 +24,7 @@
     "studio": "remotion studio",
     "build": "remotion bundle",
     "render": "remotion render RequestFlow out/request-flow.mp4",
+    "render:zoom": "remotion render RequestFlowZoom out/request-flow-zoom.mp4",
     "upgrade": "remotion upgrade",
     "lint": "eslint src && tsc"
   }

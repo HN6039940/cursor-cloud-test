@@ -29,39 +29,60 @@ cd remotion-request-flow
 npm run studio
 ```
 
-`npm run dev` でも同じ Studio が起動します。ブラウザで Composition `RequestFlow`（1920×1080 / 25 秒 / 30fps）を開いてください。
+`npm run dev` でも同じ Studio が起動します。ブラウザで Composition を選んでください。
+
+- `RequestFlow` — 1920×1080 / 25 秒 / 30fps
+- `RequestFlowZoom` — 1920×1080 / 24 秒 / 30fps（overview SVG → LB へズーム → 詳細 SVG）
 
 ## レンダー（MP4）
+
+全体像（箱の順次表示）:
 
 ```bash
 cd remotion-request-flow
 npm run render
 ```
 
+LB ズーム（Figma SVG）:
+
+```bash
+cd remotion-request-flow
+npm run render:zoom
+```
+
 同等の直接コマンド:
 
 ```bash
 npx remotion render RequestFlow out/request-flow.mp4
+npx remotion render RequestFlowZoom out/request-flow-zoom.mp4
 ```
 
 Chrome のパスを明示する場合（Linux 例）:
 
 ```bash
 npx remotion render RequestFlow out/request-flow.mp4 --browser-executable=/usr/bin/google-chrome-stable
+npx remotion render RequestFlowZoom out/request-flow-zoom.mp4 --browser-executable=/usr/bin/google-chrome-stable
 ```
 
-出力先は `out/request-flow.mp4` です（`out/` は gitignore 対象）。このクラウド環境では次のコマンドでレンダーに成功しています。
+出力先は `out/` です（gitignore 対象）。このクラウド環境では上記コマンドでレンダーに成功しています。
 
-```bash
-npx remotion render RequestFlow out/request-flow.mp4 --browser-executable=/usr/bin/google-chrome-stable
-```
+成果物のコピー:
 
-成果物のコピー: リポジトリの `artifacts/request-flow.mp4`（1920×1080、25 秒、H.264）。
+- `artifacts/request-flow.mp4`（1920×1080、25 秒、H.264）
+- `artifacts/request-flow-zoom.mp4`（1920×1080、24 秒、H.264）
 
 ## Composition
 
 | ID | 尺 | 解像度 | 内容 |
 | --- | --- | --- | --- |
 | `RequestFlow` | 25s（750 frames @ 30fps） | 1920×1080 | Client / LB / App / DB が順にフェードインし、矢印が描画されたあと、ハイライトが Client→LB→App→DB へ一度流れる |
+| `RequestFlowZoom` | 24s（720 frames @ 30fps） | 1920×1080 | `public/overview-request-flow.svg` を表示し、LB へカメラズームしたあと `public/lb-detail.svg`（「LB の中身」）へクロスフェード。最後に全体像へ戻る |
 
 画面タイトル: **リクエストがサーバに届く流れ**
+
+## SVG アセット
+
+Figma から書き出した図を `public/` に置いています。
+
+- `public/overview-request-flow.svg` — Client → LB → App → DB（1200×400）。ズーム対象は LB ボックス
+- `public/lb-detail.svg` — Health Check → Router → Target Pool（960×540）、タイトル「LB の中身」
