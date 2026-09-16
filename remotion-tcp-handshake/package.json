@@ -25,6 +25,8 @@
     "build": "remotion bundle",
     "render": "remotion render TcpThreeWaySuccess out/tcp-3way-success.mp4",
     "render:success": "remotion render TcpThreeWaySuccess out/tcp-3way-success.mp4",
+    "render:sequence": "remotion render TcpSequenceDiagram out/tcp-sequence-diagram.mp4",
+    "still:sequence": "remotion still TcpSequenceDiagram out/tcp-sequence-diagram.png",
     "upgrade": "remotion upgrade",
     "lint": "eslint src && tsc"
   }

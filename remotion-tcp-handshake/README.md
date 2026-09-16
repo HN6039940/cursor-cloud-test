@@ -1,6 +1,6 @@
 # remotion-tcp-handshake
 
-TCP の 3 ウェイハンドシェイク（SYN → SYN-ACK → ACK）を、Client / Server の 2 ノードとパケット往復で説明する Remotion ドラフトです。
+TCP の 3 ウェイハンドシェイク（SYN → SYN-ACK → ACK）を、Client / Server の 2 ノードとパケット往復で説明する Remotion ドラフトです。同じパッケージに、教科書的な **シーケンス図**（確立 → データ領域 → 切断）の Composition も含まれます。
 
 このディレクトリは個人利用の試作（personal trial）です。`remotion-request-flow/` とは別パッケージで、リクエスト経路トポロジには依存しません。見た目（暗い背景、カードノード、パス上のパケット、成功時の統一グリーン）は request-flow のポリッシュに合わせています。
 
@@ -29,7 +29,7 @@ cd remotion-tcp-handshake
 npm run studio
 ```
 
-`npm run dev` でも同じ Studio が起動します。ブラウザで Composition `TcpThreeWaySuccess`（1920×1080 / 約 30 秒 / 30fps）を開いてください。
+`npm run dev` でも同じ Studio が起動します。ブラウザで Composition `TcpThreeWaySuccess`（経路フォーカス）または `TcpSequenceDiagram`（シーケンス図）を開いてください。どちらも 1920×1080 / 30fps です。
 
 ## レンダー（MP4）
 
@@ -52,13 +52,41 @@ npx remotion render TcpThreeWaySuccess out/tcp-3way-success.mp4 --browser-execut
 
 出力先は `out/tcp-3way-success.mp4` です（`out/` は gitignore 対象）。成果物のコピーはリポジトリの `artifacts/tcp-3way-success.mp4` です。
 
+シーケンス図（確立 ①–③ → データのやり取り → 切断 ④–⑦）:
+
+```bash
+cd remotion-tcp-handshake
+npm run render:sequence
+```
+
+同等の直接コマンド:
+
+```bash
+npx remotion render TcpSequenceDiagram out/tcp-sequence-diagram.mp4
+```
+
+Chrome のパスを明示する場合（Linux 例）:
+
+```bash
+npx remotion render TcpSequenceDiagram out/tcp-sequence-diagram.mp4 --browser-executable=/usr/bin/google-chrome-stable
+```
+
+最終フレームの PNG キーフレーム:
+
+```bash
+npm run still:sequence
+```
+
+成果物のコピーは `artifacts/tcp-sequence-diagram.mp4`（任意で `artifacts/tcp-sequence-diagram.png`）です。`TcpThreeWaySuccess` の経路フォーカスフィルムはそのまま残しています。
+
 ## Composition
 
 | ID | 尺 | 解像度 | 内容 |
 | --- | --- | --- | --- |
 | `TcpThreeWaySuccess` | ~30s（906 frames @ 30fps） | 1920×1080 | 各ビートで Client↔Server の経路へリニアズームし、SYN / SYN+ACK / ACK を経路上で送ったあと、引きで統一グリーンと ✓ |
+| `TcpSequenceDiagram` | ~19s（582 frames @ 30fps） | 1920×1080 | 左右ライフラインのシーケンス図。① SYN → ② ACK,SYN → ③ ACK（コネクション確立）→ 破線のデータのやり取り → ④ FIN → ⑤ ACK → ⑥ FIN → ⑦ ACK（コネクション切断）。矢印は上から下へリニアに出現 |
 
-画面タイトル: **TCP 3ウェイハンドシェイク**
+画面タイトル: **TCP 3ウェイハンドシェイク**（経路フォーカス） / **TCP シーケンス図**（シーケンス）
 
 ## アイコン
 
@@ -83,6 +111,22 @@ npx remotion render TcpThreeWaySuccess out/tcp-3way-success.mp4 --browser-execut
 5. 最後の ACK のあとだけ全景に引き、統一グリーンと ✓
 
 パケットは経路上を動く脇役です。
+
+## シーケンス図（`TcpSequenceDiagram`）
+
+経路フォーカスフィルムとは別に、教科書的な TCP シーケンス図です。カメラ演出は使いません。情報構造は参照スケッチと同じです。
+
+- 左: クライアント（丸角ボックス + 下向きライフライン）
+- 右: サーバー（丸角ボックス + 下向きライフライン）
+- 左余白: 縦書き「時間の流れ」と ↓
+- ① SYN（C→S） / ② ACK,SYN（S→C） / ③ ACK（C→S） — 右括弧 **コネクション確立**
+- ライフライン間の破線矩形 — 右括弧 **データのやり取り**（ペイロードの詳細は描かない）
+- ④ FIN（C→S） / ⑤ ACK（S→C） / ⑥ FIN（S→C） / ⑦ ACK（C→S） — 右括弧 **コネクション切断**
+- 番号・矢印ラベル・括弧ラベルは Remotion テキスト（SVG に文字を焼き込まない）
+- 矢印 ①→⑦ は上から下へ直線タイミングで出現
+- 確立完了・切断完了で統一グリーンと ✓
+
+`TcpThreeWaySuccess` は変更していません。
 
 ## ステータス色
 
