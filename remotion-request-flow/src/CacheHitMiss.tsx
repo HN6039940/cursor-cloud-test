@@ -59,6 +59,12 @@ export const CacheHitMiss: FC = () => {
   if (packetHit && hitDone) {
     packetHit.pos = { x: CENTER.appa.x, y: CENTER.appa.y };
   }
+  if (packetMiss) {
+    packetMiss.scale = 1.25;
+  }
+  if (packetHit) {
+    packetHit.scale = 1.25;
+  }
 
   const nodeFx: Partial<Record<NodeId, NodeFx>> = {
     appb: { dim: 0.38 },
@@ -75,10 +81,14 @@ export const CacheHitMiss: FC = () => {
 
   if (inMiss || (inReset && frame < RESET_START + 24)) {
     for (const id of PATH_MISS_NODES) {
-      if (tMiss >= PATH_MISS_ARRIVAL[id]) {
-        const color = id === "cache" && !missDone ? MISS_CACHE : SUCCESS_COLOR;
-        markSuccess(id, badgeFromT(tMiss, PATH_MISS_ARRIVAL[id], missDone), color);
+      if (tMiss < PATH_MISS_ARRIVAL[id]) {
+        continue;
       }
+      if (id === "cache" && !missDone) {
+        nodeFx.cache = { glow: MISS_CACHE };
+        continue;
+      }
+      markSuccess(id, badgeFromT(tMiss, PATH_MISS_ARRIVAL[id], missDone));
     }
   }
 
@@ -145,7 +155,7 @@ export const CacheHitMiss: FC = () => {
   } else if (inReset) {
     caption = "一度リセットして、ヒットの経路を見る";
   } else if (inMiss) {
-    caption = missDone || tMiss >= PATH_MISS_ARRIVAL.db ? "キャッシュミス → DB へ" : "Cache を確認する";
+    caption = missDone || tMiss >= PATH_MISS_ARRIVAL.cache ? "キャッシュミス → DB へ" : "Cache を確認する";
   }
 
   const dim = inReset
