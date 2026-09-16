@@ -29,7 +29,7 @@ cd remotion-tcp-handshake
 npm run studio
 ```
 
-`npm run dev` でも同じ Studio が起動します。ブラウザで Composition `TcpThreeWaySuccess`（1920×1080 / 18 秒 / 30fps）を開いてください。
+`npm run dev` でも同じ Studio が起動します。ブラウザで Composition `TcpThreeWaySuccess`（1920×1080 / 約 30 秒 / 30fps）を開いてください。
 
 ## レンダー（MP4）
 
@@ -56,7 +56,7 @@ npx remotion render TcpThreeWaySuccess out/tcp-3way-success.mp4 --browser-execut
 
 | ID | 尺 | 解像度 | 内容 |
 | --- | --- | --- | --- |
-| `TcpThreeWaySuccess` | 18s（540 frames @ 30fps） | 1920×1080 | Client / Server がフェードインし、SYN → SYN-ACK → ACK のパケット往復のあと、統一グリーンと ✓ で接続確立 |
+| `TcpThreeWaySuccess` | ~30s（906 frames @ 30fps） | 1920×1080 | 各ビートで Client↔Server の経路へリニアズームし、SYN / SYN+ACK / ACK を経路上で送ったあと、引きで統一グリーンと ✓ |
 
 画面タイトル: **TCP 3ウェイハンドシェイク**
 
@@ -71,6 +71,18 @@ npx remotion render TcpThreeWaySuccess out/tcp-3way-success.mp4 --browser-execut
 | `public/icons/check.svg` | 成功バッジの ✓ |
 
 配線（往路 / 復路）は Figma の細いバーではなく Remotion のパスです。
+
+## カメラ（経路フォーカス）
+
+各ビートは **パケットやカードではなく Client↔Server の経路** を主役にします。ズーム / パンは直線補間のみ（カーブなし）。
+
+1. SYN — 往路（Client → Server）へリニアズーム。フラグ `SYN` と方向を経路のそばに表示
+2. SYN-ACK — 復路（Server → Client）へリニアパン。フラグ `SYN + ACK`
+3. ACK — 往路へ戻して `ACK`
+4. 着陸後に短いホールド → 次の経路
+5. 最後の ACK のあとだけ全景に引き、統一グリーンと ✓
+
+パケットは経路上を動く脇役です。
 
 ## ステータス色
 
