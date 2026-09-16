@@ -3,12 +3,13 @@ import "./index.css";
 import { Composition } from "remotion";
 import { BOUNDARY_PROBE, BoundaryProbe } from "./BoundaryProbe";
 import { BRANCH_MERGE, BranchMerge } from "./BranchMerge";
-import { CACHE_HIT_MISS, CacheHitMiss } from "./CacheHitMiss";
+import { CACHE_HIT_MISS, CacheHitMiss, REQUEST_FLOW_CACHE_HIT_MISS, RequestFlowCacheHitMiss } from "./CacheHitMiss";
 import { ICON_NODES, IconNodes } from "./IconNodes";
 import { ICON_PATH_BRANCH, IconPathBranch, REQUEST_FLOW_SUCCESS, RequestFlowSuccess } from "./IconPathBranch";
 import { REQUEST_FLOW_FAIL_LOST, RequestFlowFailLost } from "./RequestFlowFailLost";
+import { REQUEST_FLOW_RETRY, RequestFlowRetry } from "./RequestFlowRetry";
 import { RequestFlow } from "./RequestFlow";
-import { REQUEST_FLOW_ZOOM, RequestFlowZoom } from "./RequestFlowZoom";
+import { REQUEST_FLOW_ZOOM, REQUEST_FLOW_ZOOM_DETAIL, RequestFlowZoom, RequestFlowZoomDetail } from "./RequestFlowZoom";
 
 export const RemotionRoot: FC = () => {
   return (
@@ -28,6 +29,14 @@ export const RemotionRoot: FC = () => {
         fps={REQUEST_FLOW_ZOOM.fps}
         width={REQUEST_FLOW_ZOOM.width}
         height={REQUEST_FLOW_ZOOM.height}
+      />
+      <Composition
+        id="RequestFlowZoomDetail"
+        component={RequestFlowZoomDetail}
+        durationInFrames={REQUEST_FLOW_ZOOM_DETAIL.durationInFrames}
+        fps={REQUEST_FLOW_ZOOM_DETAIL.fps}
+        width={REQUEST_FLOW_ZOOM_DETAIL.width}
+        height={REQUEST_FLOW_ZOOM_DETAIL.height}
       />
       <Composition
         id="BoundaryProbe"
@@ -52,6 +61,14 @@ export const RemotionRoot: FC = () => {
         fps={CACHE_HIT_MISS.fps}
         width={CACHE_HIT_MISS.width}
         height={CACHE_HIT_MISS.height}
+      />
+      <Composition
+        id="RequestFlowCacheHitMiss"
+        component={RequestFlowCacheHitMiss}
+        durationInFrames={REQUEST_FLOW_CACHE_HIT_MISS.durationInFrames}
+        fps={REQUEST_FLOW_CACHE_HIT_MISS.fps}
+        width={REQUEST_FLOW_CACHE_HIT_MISS.width}
+        height={REQUEST_FLOW_CACHE_HIT_MISS.height}
       />
       <Composition
         id="IconNodes"
@@ -84,6 +101,14 @@ export const RemotionRoot: FC = () => {
         fps={REQUEST_FLOW_FAIL_LOST.fps}
         width={REQUEST_FLOW_FAIL_LOST.width}
         height={REQUEST_FLOW_FAIL_LOST.height}
+      />
+      <Composition
+        id="RequestFlowRetry"
+        component={RequestFlowRetry}
+        durationInFrames={REQUEST_FLOW_RETRY.durationInFrames}
+        fps={REQUEST_FLOW_RETRY.fps}
+        width={REQUEST_FLOW_RETRY.width}
+        height={REQUEST_FLOW_RETRY.height}
       />
     </>
   );
