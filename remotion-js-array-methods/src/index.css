@@ -1,0 +1,18 @@
+html,
+body {
+  margin: 0;
+  background: #efefef;
+}
+
+.method-row > :nth-child(1) {
+  justify-self: end;
+}
+
+.method-row > :nth-child(2),
+.method-row > :nth-child(3) {
+  justify-self: center;
+}
+
+.method-row > :nth-child(4) {
+  justify-self: start;
+}
