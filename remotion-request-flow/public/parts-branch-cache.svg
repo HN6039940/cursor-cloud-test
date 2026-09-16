@@ -1,0 +1,22 @@
+<svg width="1400" height="720" viewBox="0 0 1400 720" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="1400" height="720" fill="#121726"/>
+<g id="PartsBranchCache">
+<rect id="Edge-Client-LB" x="207" y="356.0" width="116" height="8" rx="4" fill="#598ce0"/>
+<rect id="Edge-LB-AppA-H" x="467" y="176.0" width="136" height="8" rx="4" fill="#598ce0"/>
+<rect id="Edge-LB-AppA-V" x="470" y="173.0" width="8" height="194.0" rx="4" fill="#598ce0"/>
+<rect id="Edge-LB-AppB-H" x="467" y="536.0" width="136" height="8" rx="4" fill="#598ce0"/>
+<rect id="Edge-LB-AppB-V" x="470" y="353.0" width="8" height="194.0" rx="4" fill="#598ce0"/>
+<rect id="Edge-AppA-Cache" x="747" y="176.0" width="136" height="8" rx="4" fill="#7366bf"/>
+<rect id="Edge-Cache-DB-H" x="1027" y="176.0" width="136" height="8" rx="4" fill="#7366bf"/>
+<rect id="Edge-Cache-DB-V" x="1152" y="173.0" width="8" height="194.0" rx="4" fill="#7366bf"/>
+<rect id="Edge-AppB-DB-H" x="747" y="536.0" width="416" height="8" rx="4" fill="#598ce0"/>
+<rect id="Edge-AppB-DB-V" x="1152" y="353.0" width="8" height="194.0" rx="4" fill="#598ce0"/>
+<rect id="Edge-AppA-DB-H" x="747" y="232" width="416" height="8" rx="4" fill="#598ce0"/>
+<rect id="Edge-AppA-DB-V" x="1152" y="229" width="8" height="138.0" rx="4" fill="#598ce0"/>
+<rect id="Client" x="60" y="320" width="150" height="80" rx="16" fill="#2e4773" stroke="#5974a6" stroke-width="2"/>
+<rect id="LB" x="320" y="320" width="150" height="80" rx="16" fill="#26528c" stroke="#5974a6" stroke-width="2"/>
+<rect id="AppA" x="600" y="140" width="150" height="80" rx="16" fill="#33426b" stroke="#5974a6" stroke-width="2"/>
+<rect id="AppB" x="600" y="500" width="150" height="80" rx="16" fill="#33426b" stroke="#5974a6" stroke-width="2"/>
+<rect id="Cache" x="880" y="140" width="150" height="80" rx="16" fill="#47386b" stroke="#5974a6" stroke-width="2"/>
+<rect id="DB" x="1160" y="320" width="150" height="80" rx="16" fill="#383d61" stroke="#5974a6" stroke-width="2"/>
+</g></svg>
