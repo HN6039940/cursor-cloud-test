@@ -5,6 +5,7 @@ import { BOUNDARY_PROBE, BoundaryProbe } from "./BoundaryProbe";
 import { BRANCH_MERGE, BranchMerge } from "./BranchMerge";
 import { CACHE_HIT_MISS, CacheHitMiss } from "./CacheHitMiss";
 import { ICON_NODES, IconNodes } from "./IconNodes";
+import { ICON_PATH_BRANCH, IconPathBranch } from "./IconPathBranch";
 import { RequestFlow } from "./RequestFlow";
 import { REQUEST_FLOW_ZOOM, RequestFlowZoom } from "./RequestFlowZoom";
 
@@ -58,6 +59,14 @@ export const RemotionRoot: FC = () => {
         fps={ICON_NODES.fps}
         width={ICON_NODES.width}
         height={ICON_NODES.height}
+      />
+      <Composition
+        id="IconPathBranch"
+        component={IconPathBranch}
+        durationInFrames={ICON_PATH_BRANCH.durationInFrames}
+        fps={ICON_PATH_BRANCH.fps}
+        width={ICON_PATH_BRANCH.width}
+        height={ICON_PATH_BRANCH.height}
       />
     </>
   );

@@ -29,6 +29,7 @@
     "render:branch": "remotion render BranchMerge out/branch-merge.mp4",
     "render:cache": "remotion render CacheHitMiss out/cache-hit-miss.mp4",
     "render:icons": "remotion render IconNodes out/icon-nodes.mp4",
+    "render:icon-path": "remotion render IconPathBranch out/icon-path-branch.mp4",
     "upgrade": "remotion upgrade",
     "lint": "eslint src && tsc"
   }

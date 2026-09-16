@@ -37,6 +37,7 @@ npm run studio
 - `BranchMerge` — 1920×1080 / 25 秒 / 30fps（App A / App B へ分岐して DB で合流）
 - `CacheHitMiss` — 1920×1080 / 約 26.5 秒 / 30fps（ミスは DB へ、ヒットは Cache から引き返す）
 - `IconNodes` — 1920×1080 / 10 秒 / 30fps（Lucide アイコン SVG を暗色カード上に表示。トポロジーなし）
+- `IconPathBranch` — 1920×1080 / 25 秒 / 30fps（アイコンカード＋ Remotion の Manhattan パス。Figma 辺は使わない）
 
 ## レンダー（MP4）
 
@@ -82,6 +83,13 @@ cd remotion-request-flow
 npm run render:icons
 ```
 
+アイコン＋ Remotion パス（分岐と合流）:
+
+```bash
+cd remotion-request-flow
+npm run render:icon-path
+```
+
 同等の直接コマンド:
 
 ```bash
@@ -91,6 +99,7 @@ npx remotion render BoundaryProbe out/boundary-probe.mp4
 npx remotion render BranchMerge out/branch-merge.mp4
 npx remotion render CacheHitMiss out/cache-hit-miss.mp4
 npx remotion render IconNodes out/icon-nodes.mp4
+npx remotion render IconPathBranch out/icon-path-branch.mp4
 ```
 
 Chrome のパスを明示する場合（Linux 例）:
@@ -102,6 +111,7 @@ npx remotion render BoundaryProbe out/boundary-probe.mp4 --browser-executable=/u
 npx remotion render BranchMerge out/branch-merge.mp4 --browser-executable=/usr/bin/google-chrome-stable
 npx remotion render CacheHitMiss out/cache-hit-miss.mp4 --browser-executable=/usr/bin/google-chrome-stable
 npx remotion render IconNodes out/icon-nodes.mp4 --browser-executable=/usr/bin/google-chrome-stable
+npx remotion render IconPathBranch out/icon-path-branch.mp4 --browser-executable=/usr/bin/google-chrome-stable
 ```
 
 出力先は `out/` です（gitignore 対象）。このクラウド環境では上記コマンドでレンダーに成功しています。
@@ -114,6 +124,7 @@ npx remotion render IconNodes out/icon-nodes.mp4 --browser-executable=/usr/bin/g
 - `artifacts/branch-merge.mp4`（1920×1080、25 秒、H.264）
 - `artifacts/cache-hit-miss.mp4`（1920×1080、約 26.5 秒、H.264）
 - `artifacts/icon-nodes.mp4`（1920×1080、10 秒、H.264）
+- `artifacts/icon-path-branch.mp4`（1920×1080、25 秒、H.264）
 
 ## Composition
 
@@ -125,6 +136,7 @@ npx remotion render IconNodes out/icon-nodes.mp4 --browser-executable=/usr/bin/g
 | `BranchMerge` | 25s（750 frames @ 30fps） | 1920×1080 | `public/parts-branch-cache.svg` 上で Packet A（App A）と Packet B（App B）が分岐し、DB で合流する |
 | `CacheHitMiss` | 約 26.5s（795 frames @ 30fps） | 1920×1080 | 同じ SVG でミス（Cache→DB）とヒット（Cache から App A へ折り返し、DB に行かない）を対比する |
 | `IconNodes` | 10s（300 frames @ 30fps） | 1920×1080 | Remotion が描いた暗色カード上に `public/icons/*.svg` を `Img` + `staticFile` で載せ、Client / LB / App / Cache / DB のラベルを表示する（アイコン経路の確認用。辺なし） |
+| `IconPathBranch` | 25s（750 frames @ 30fps） | 1920×1080 | 同じアイコンカードをトポロジ配置し、コネクタは Remotion の SVG `<path>`（Manhattan、カード辺の中点）。DB へは 1 本の合流トランク。シアン / オレンジのパケットが分岐して合流する。`parts-branch-cache.svg` は使わない |
 
 画面タイトル: **リクエストがサーバに届く流れ**
 
@@ -137,7 +149,7 @@ Figma から書き出した図を `public/` に置いています。
 - `public/parts-only-flow.svg` — Client / LB / App / DB の箱と辺だけ（1200×400、テキストなし）。ラベル等は `BoundaryProbe` が描画
 - `public/parts-branch-cache.svg` — Client / LB / App A / App B / Cache / DB と Manhattan 辺（1400×720、テキストなし）。`BranchMerge` と `CacheHitMiss` がラベルとパケットを描画
 
-アイコン専用 SVG（Figma 配線なし）。Lucide static v0.454.0（ISC）。stroke `#c5d3ee`、64×64、`viewBox="0 0 24 24"`。`IconNodes` が `staticFile('icons/….svg')` 経由で `Img` 表示します。
+アイコン専用 SVG（Figma 配線なし）。Lucide static v0.454.0（ISC）。stroke `#c5d3ee`、64×64、`viewBox="0 0 24 24"`。`IconNodes` と `IconPathBranch` が `staticFile('icons/….svg')` 経由で `Img` 表示します。
 
 - `public/icons/client.svg` — monitor
 - `public/icons/lb.svg` — git-branch
