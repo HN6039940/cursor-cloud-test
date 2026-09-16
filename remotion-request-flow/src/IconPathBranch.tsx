@@ -32,18 +32,26 @@ type NodeDef = {
   y: number;
 };
 
+const MARGIN = 100;
+const COL_GAP = (WIDTH - MARGIN * 2 - CARD_W * 5) / 4;
+const X_CLIENT = MARGIN;
+const X_LB = X_CLIENT + CARD_W + COL_GAP;
+const X_APPS = X_LB + CARD_W + COL_GAP;
+const X_CACHE = X_APPS + CARD_W + COL_GAP;
+const X_DB = X_CACHE + CARD_W + COL_GAP;
+
 const CY_MID = 540;
-const CY_UP = 278;
-const CY_DN = 802;
+const CY_UP = 340;
+const CY_DN = 740;
 const topFor = (cy: number) => cy - CARD_H / 2;
 
 const NODES: NodeDef[] = [
-  { id: "client", label: "Client", file: "icons/client.svg", accent: "#59A6FF", x: 72, y: topFor(CY_MID) },
-  { id: "lb", label: "LB", file: "icons/lb.svg", accent: "#4DD18C", x: 360, y: topFor(CY_MID) },
-  { id: "appa", label: "App A", file: "icons/app.svg", accent: "#F0C14B", x: 668, y: topFor(CY_UP) },
-  { id: "appb", label: "App B", file: "icons/app.svg", accent: "#FF8A4C", x: 668, y: topFor(CY_DN) },
-  { id: "cache", label: "Cache", file: "icons/cache.svg", accent: "#C084FC", x: 924, y: topFor(CY_UP) },
-  { id: "db", label: "DB", file: "icons/db.svg", accent: "#A78BFA", x: 1680, y: topFor(CY_MID) },
+  { id: "client", label: "Client", file: "icons/client.svg", accent: "#59A6FF", x: X_CLIENT, y: topFor(CY_MID) },
+  { id: "lb", label: "LB", file: "icons/lb.svg", accent: "#4DD18C", x: X_LB, y: topFor(CY_MID) },
+  { id: "appa", label: "App A", file: "icons/app.svg", accent: "#F0C14B", x: X_APPS, y: topFor(CY_UP) },
+  { id: "appb", label: "App B", file: "icons/app.svg", accent: "#FF8A4C", x: X_APPS, y: topFor(CY_DN) },
+  { id: "cache", label: "Cache", file: "icons/cache.svg", accent: "#C084FC", x: X_CACHE, y: topFor(CY_UP) },
+  { id: "db", label: "DB", file: "icons/db.svg", accent: "#A78BFA", x: X_DB, y: topFor(CY_MID) },
 ];
 
 const NODE = Object.fromEntries(NODES.map((node) => [node.id, node])) as Record<NodeId, NodeDef>;
@@ -61,8 +69,8 @@ const CENTER: Record<NodeId, Pt> = {
   db: center(NODE.db),
 };
 
-const BRANCH_X = 572;
-const MERGE_X = 1380;
+const BRANCH_X = (rightMid(NODE.lb).x + leftMid(NODE.appa).x) / 2;
+const MERGE_X = (rightMid(NODE.cache).x + leftMid(NODE.db).x) / 2;
 
 const CLIENT_RIGHT = rightMid(NODE.client);
 const LB_LEFT = leftMid(NODE.lb);
