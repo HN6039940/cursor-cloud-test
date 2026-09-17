@@ -74,17 +74,17 @@ npx remotion render EniOverview ../artifacts/saa-eni-overview.mp4 --browser-exec
 
 | ID | 尺 | 解像度 | 内容 |
 | --- | --- | --- | --- |
-| `Ec2PlacementGroups` | 81.0s（2430 frames @ 30fps） | 1920×1080 | Cluster / Partition / Spread を緩いリニアフォーカス。通信と障害の広がりをパケットで見せ、最後に 3 類型比較 |
-| `EniOverview` | 65.0s（1950 frames @ 30fps） | 1920×1080 | ENI を通る通信 → eth0/eth1 の 2 経路 → 同一 AZ で ENI ごと移動 |
+| `Ec2PlacementGroups` | 96.5s（2896 frames @ 30fps） | 1920×1080 | Cluster / Partition / Spread を Region / AZ の地理で見せ、図 → 動き → 用語 → 余韻の順 |
+| `EniOverview` | 77.7s（2332 frames @ 30fps） | 1920×1080 | ENI を通る通信 → eth0/eth1 の 2 経路 → 同一 AZ で ENI ごと移動。同じビート |
 
 画面タイトル:
 
 - **EC2 Placement Groups**
 - **Elastic Network Interface**
 
-カメラは領域間を直線でつなぎ、補間の **t だけ ease-in-out** します。曲線カメラは使いません。ズームは約 2.6 秒かけてゆっくり寄ります。
+カメラは領域間を直線でつなぎ、補間の **t だけ ease-in-out** します。曲線カメラは使いません。ズームピークは約 1.16 倍まで。
 
-画面は **1 画面 1 メッセージ**。試験用語は短いキャプションにだけ残します。
+各トピックは **図解 → 動き → 用語 → 余韻（dwell）**。ラベルの直後に切らず、動きをしばらく残します。
 
 ## 図解モーション分担
 
@@ -94,18 +94,21 @@ npx remotion render EniOverview ../artifacts/saa-eni-overview.mp4 --browser-exec
 
 ## Film 1 — Placement Groups
 
-1. Cluster — 近くに集める。速い。一緒に落ちる（通信 → ラック障害）
-2. Partition — ラックごとに分ける。片方の障害は他に広がらない
-3. Spread — 別々の機械へ。1 台落ちても他は生きる
+Region 枠の中に AZ を置き、3 類型の違いを地理から読めるようにしています。
+
+1. Cluster — Region の 1 AZ に集め、もう一方の AZ は使わない。速い通信 → ラック障害で全部止まる
+2. Partition — AZ-a にラック A/B、AZ-b にラック C。同じラック内の通信。B だけ落ちて A と C は続く
+3. Spread — 複数 AZ の別機械へ散らす。1 台落ちても他へ届く
 4. 比較 — 一緒に落ちる / 一部だけ / 1 台だけ
-5. 覚え方キャプション — Cluster は 1 AZ。Spread は 7 台/AZ
 
 ## Film 2 — ENI
+
+既存の 3 カット（概要 / eth0·eth1 / 同一 AZ の着脱）に SG-on-ENI の戻りを足していません。テンポだけ揃えています。
 
 1. ENI は仮想 NIC。通信は Instance → ENI → Subnet
 2. eth0 は外せない。eth1 は移せる（2 本のパケット経路）
 3. 同じ AZ なら ENI ごと移る
-4. 覚え方キャプション — SG は ENI に付く
+4. SG は ENI に付く（既存の概要図へ戻る）
 
 ## アイコン
 

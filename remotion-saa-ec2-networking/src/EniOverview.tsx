@@ -52,16 +52,21 @@ const BOARD_X = 70;
 const BOARD_W = 1780;
 const BOARD_H = 760;
 
-const PEAK_ENI = 1.42;
-const PEAK_BOARD = 1.04;
+const PEAK_ENI = 1.16;
+const PEAK_BOARD = 1.03;
 
-const INTRO = 120;
-const ZOOM = 78;
-const ENI_HOLD = 390;
-const PRIM_HOLD = 480;
-const MOVE_HOLD = 480;
-const REST = 36;
-const OUTRO = 132;
+const INTRO = 100;
+const ZOOM = 84;
+const P_DIAGRAM = 90;
+const P_MOTION = 150;
+const P_TERM = 120;
+const P_DWELL = 180;
+const TOPIC_HOLD = P_DIAGRAM + P_MOTION + P_TERM + P_DWELL;
+const ENI_HOLD = TOPIC_HOLD;
+const PRIM_HOLD = TOPIC_HOLD;
+const MOVE_HOLD = TOPIC_HOLD;
+const REST = 180;
+const OUTRO = 96;
 
 const eniZoom = INTRO;
 const eniHold = eniZoom + ZOOM;
@@ -80,7 +85,7 @@ const MOVE_CENTER: Pt = { x: WIDTH / 2, y: MOVE_Y + 390 };
 
 const FOCUS_ENI = cameraFocus(ENI_CENTER, PEAK_ENI);
 const FOCUS_PRIM = cameraFocus(PRIM_CENTER, PEAK_BOARD);
-const FOCUS_MOVE = cameraFocus(MOVE_CENTER, 1.06);
+const FOCUS_MOVE = cameraFocus(MOVE_CENTER, PEAK_BOARD);
 
 const cameraAt = (frame: number): CameraView => {
   if (frame < eniZoom) {
@@ -116,20 +121,57 @@ const moving = (frame: number) =>
   (frame >= moveZoom && frame < moveHold) ||
   (frame >= overviewBack && frame < overviewHold);
 
+const beatLocal = (frame: number, hold: number) => frame - hold;
+
+const beatPhase = (frame: number, hold: number): "diagram" | "motion" | "term" | "dwell" => {
+  const t = beatLocal(frame, hold);
+  if (t < P_DIAGRAM) {
+    return "diagram";
+  }
+  if (t < P_DIAGRAM + P_MOTION) {
+    return "motion";
+  }
+  if (t < P_DIAGRAM + P_MOTION + P_TERM) {
+    return "term";
+  }
+  return "dwell";
+};
+
 const captionFor = (frame: number): { kicker: string; line: string } => {
   if (frame < eniHold) {
-    return { kicker: "ENI", line: "ENI は仮想 NIC" };
+    return { kicker: "ENI", line: "仮想 NIC" };
   }
+  const eniPhase = beatPhase(frame, eniHold);
   if (frame < primZoom) {
-    return { kicker: "通り道", line: "通信は Instance → ENI → Subnet" };
+    if (eniPhase === "diagram") {
+      return { kicker: "ENI", line: "Instance · ENI · Subnet" };
+    }
+    if (eniPhase === "motion") {
+      return { kicker: "通り道", line: "通信は Instance → ENI → Subnet" };
+    }
+    return { kicker: "ENI", line: "仮想 NIC。IP と SG を持つ" };
   }
+  const primPhase = beatPhase(frame, primHold);
   if (frame < moveZoom) {
+    if (primPhase === "diagram") {
+      return { kicker: "2 本の NIC", line: "eth0 と eth1 の通り道" };
+    }
+    if (primPhase === "motion") {
+      return { kicker: "2 本の NIC", line: "パケットが eth0 と eth1 を通る" };
+    }
     return { kicker: "2 本の NIC", line: "eth0 は外せない。eth1 は移せる" };
   }
+  const movePhase = beatPhase(frame, moveHold);
   if (frame < overviewBack) {
+    if (movePhase === "diagram") {
+      return { kicker: "移動", line: "同じ AZ の 2 台" };
+    }
+    if (movePhase === "motion") {
+      return { kicker: "移動", line: "ENI が A から B へ移る" };
+    }
     return { kicker: "移動", line: "同じ AZ なら、ENI ごと移る" };
   }
-  return { kicker: "覚え方", line: "SG は ENI に付く" };
+  return { kicker: "SG", line: "SG は ENI に付く" };
 };
 
 const NodeCard: FC<{
@@ -235,9 +277,11 @@ const OverviewPaths: FC<{ progress: number; glow: boolean }> = ({ progress, glow
 };
 
 const PrimaryScene: FC<{ frame: number }> = ({ frame }) => {
-  const eth1 = smoothT(frame, primHold + 80, primHold + 150);
-  const t0 = loopT(frame, primHold + 40, 86);
-  const t1 = loopT(frame, primHold + 160, 94);
+  const phase = beatPhase(frame, primHold);
+  const trafficOn = phase !== "diagram";
+  const eth1 = smoothT(frame, primHold + P_DIAGRAM, primHold + P_DIAGRAM + 70);
+  const t0 = loopT(frame, primHold + P_DIAGRAM, 86);
+  const t1 = loopT(frame, primHold + P_DIAGRAM + 20, 94);
   const path0: Pt[] = [
     { x: 360, y: 250 },
     { x: 560, y: 250 },
@@ -325,8 +369,8 @@ const PrimaryScene: FC<{ frame: number }> = ({ frame }) => {
         >
           <Txt style={{ fontSize: 16, color: TEXT_SOFT }}>eth1 の先</Txt>
         </NodeCard>
-        <PacketDot x={p0.x} y={p0.y} color={WARN_COLOR} />
-        <PacketDot x={p1.x} y={p1.y} color={ENI_ACCENT} opacity={eth1} />
+        {trafficOn ? <PacketDot x={p0.x} y={p0.y} color={WARN_COLOR} /> : null}
+        {trafficOn ? <PacketDot x={p1.x} y={p1.y} color={ENI_ACCENT} opacity={eth1} /> : null}
       </div>
     </div>
   );
@@ -338,9 +382,10 @@ const MOVE_ENI_FROM = { x: 520, y: MOVE_Y + 250 };
 const MOVE_ENI_TO = { x: 940, y: MOVE_Y + 250 };
 
 const MoveScene: FC<{ frame: number }> = ({ frame }) => {
-  const detach = smoothT(frame, moveHold + 36, moveHold + 120);
-  const travel = smoothT(frame, moveHold + 140, moveHold + 320);
-  const attach = smoothT(frame, moveHold + 330, moveHold + 400);
+  const phase = beatPhase(frame, moveHold);
+  const detach = smoothT(frame, moveHold + P_DIAGRAM, moveHold + P_DIAGRAM + 40);
+  const travel = smoothT(frame, moveHold + P_DIAGRAM + 50, moveHold + P_DIAGRAM + 130);
+  const attach = smoothT(frame, moveHold + P_DIAGRAM + 132, moveHold + P_DIAGRAM + 150);
   const eniPos = walkPolyline(
     [
       { x: MOVE_ENI_FROM.x, y: MOVE_ENI_FROM.y },
@@ -356,8 +401,8 @@ const MoveScene: FC<{ frame: number }> = ({ frame }) => {
     { x: MOVE_B.x + 150 - BOARD_X, y: MOVE_B.y + 80 - MOVE_Y - 28 },
     { x: MOVE_ENI_TO.x + 150 - BOARD_X, y: MOVE_ENI_TO.y + 80 - MOVE_Y - 28 },
   ];
-  const tBefore = loopT(frame, moveHold, 70);
-  const tAfter = loopT(frame, moveHold + 400, 70);
+  const tBefore = loopT(frame, moveHold + P_DIAGRAM, 70);
+  const tAfter = loopT(frame, moveHold + P_DIAGRAM + P_MOTION, 70);
   const pktBefore = walkPolyline(beforePath, tBefore);
   const pktAfter = walkPolyline(afterPath, tAfter);
   return (
@@ -465,7 +510,7 @@ const MoveScene: FC<{ frame: number }> = ({ frame }) => {
             <Tag label="SG" accent={SG_ACCENT} />
           </div>
         </div>
-        {detach < 0.35 ? <PacketDot x={pktBefore.x} y={pktBefore.y} color={GLOW_COLOR} /> : null}
+        {phase !== "diagram" && detach < 0.35 ? <PacketDot x={pktBefore.x} y={pktBefore.y} color={GLOW_COLOR} /> : null}
         {attach > 0.6 ? <PacketDot x={pktAfter.x} y={pktAfter.y} color={SUCCESS_COLOR} /> : null}
       </div>
     </div>
@@ -488,9 +533,10 @@ export const EniOverview: FC = () => {
       extrapolateRight: "clamp",
     }) * (moving(frame) ? 0.55 : 1);
   const focusEni = frame >= eniHold && frame < primZoom;
-  const onOverview = frame < primZoom || frame >= overviewHold;
-  const tGo = loopT(frame, 48, 96);
-  const tBack = loopT(frame, 96, 96);
+  const overviewTraffic =
+    (frame >= eniHold + P_DIAGRAM && frame < primZoom) || frame >= overviewHold;
+  const tGo = loopT(frame, eniHold + P_DIAGRAM, 96);
+  const tBack = loopT(frame, eniHold + P_DIAGRAM + 48, 96);
   const go = walkPolyline(PATH_FULL, tGo);
   const back = walkPolyline(PATH_RETURN, tBack);
 
@@ -562,8 +608,10 @@ export const EniOverview: FC = () => {
         >
           <Tag label="ENI に付く" accent={SG_ACCENT} />
         </NodeCard>
-        {onOverview && pathDraw > 0.25 ? <PacketDot x={go.x} y={go.y} color={GLOW_COLOR} /> : null}
-        {onOverview && pathDraw > 0.25 ? <PacketDot x={back.x} y={back.y} color={ENI_ACCENT} size={12} opacity={0.85} /> : null}
+        {overviewTraffic && pathDraw > 0.25 ? <PacketDot x={go.x} y={go.y} color={GLOW_COLOR} /> : null}
+        {overviewTraffic && pathDraw > 0.25 ? (
+          <PacketDot x={back.x} y={back.y} color={ENI_ACCENT} size={12} opacity={0.85} />
+        ) : null}
         <PrimaryScene frame={frame} />
         <MoveScene frame={frame} />
       </div>
