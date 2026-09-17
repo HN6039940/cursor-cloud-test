@@ -67,7 +67,7 @@ const Code: FC<{ children: ReactNode; style?: CSSProperties }> = ({
       style={{
         fontFamily: UI_FONT,
         fontSize: 48,
-        fontWeight: 600,
+        fontWeight: 500,
         color: INK,
         display: "inline-flex",
         alignItems: "center",
@@ -94,7 +94,7 @@ const Cluster: FC<{
   itemStyle?: (index: number) => CSSProperties;
 }> = ({ items, size = EMOJI, itemStyle }) => {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
       {items.map((name, i) => (
         <div key={`${name}-${i}`} style={itemStyle?.(i)}>
           <Emoji name={name} size={size} />
@@ -142,7 +142,7 @@ const MapRow: FC<{ frame: number; phase: Phase }> = ({ frame, phase }) => {
         style={{
           display: "flex",
           alignItems: "center",
-          gap: 6,
+          gap: 2,
           opacity: resultOp,
         }}
       >
@@ -172,8 +172,7 @@ const FilterRow: FC<{ frame: number; phase: Phase }> = ({ frame, phase }) => {
           items={items}
           itemStyle={(i) => {
             const keep = items[i] === "puppy";
-            const drop =
-              phase === "active" ? stagger(frame, 40, 104, i, 4) : phase === "done" ? 1 : 0;
+            const drop = phase === "active" ? stagger(frame, 40, 104, i, 4) : 0;
             return {
               opacity: keep ? 1 : 1 - 0.72 * drop,
               transform: `scale(${keep ? 1 + 0.1 * drop : 1 - 0.08 * drop})`,
@@ -207,7 +206,7 @@ const EveryRow: FC<{ frame: number; phase: Phase }> = ({ frame, phase }) => {
         <Cluster
           items={items}
           itemStyle={(i) => {
-            const visited = phase === "done" || scan > i;
+            const visited = phase === "active" && scan > i;
             const ok = items[i] === "dog";
             const on = phase === "active" && i === cursor && frame >= 36;
             return {
@@ -243,7 +242,7 @@ const SomeRow: FC<{ frame: number; phase: Phase }> = ({ frame, phase }) => {
           items={items}
           itemStyle={(i) => {
             const on = phase === "active" && i === cursor && frame >= 36;
-            const after = phase === "done" || (phase === "active" && frame >= 88);
+            const after = phase === "active" && frame >= 88;
             const match = items[i] === "puppy";
             return {
               opacity: after && i > 1 ? 0.4 : 1,
@@ -290,7 +289,7 @@ const FillRow: FC<{ frame: number; phase: Phase }> = ({ frame, phase }) => {
         {", 1)"}
       </Code>
       <Arrow opacity={arrowOp} />
-      <div style={{ display: "flex", alignItems: "center", gap: 6, opacity: resultOp }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 2, opacity: resultOp }}>
         {[0, 1, 2, 3].map((i) => {
           const fillAt =
             i === 0
@@ -323,7 +322,7 @@ const FindIndexRow: FC<{ frame: number; phase: Phase }> = ({ frame, phase }) => 
           items={items}
           itemStyle={(i) => {
             const on = phase === "active" && i === cursor && frame >= 36;
-            const found = phase === "done" || (phase === "active" && frame >= 100 && i === 2);
+            const found = phase === "active" && frame >= 100 && i === 2;
             const dimTail = phase === "active" && frame >= 100 && i > 2;
             return {
               opacity: dimTail ? 0.38 : 1,
@@ -332,9 +331,9 @@ const FindIndexRow: FC<{ frame: number; phase: Phase }> = ({ frame, phase }) => 
           }}
         />
       </div>
-      <Code style={{ opacity: methodOp, fontSize: 42 }}>
+      <Code style={{ opacity: methodOp, fontSize: 40 }}>
         {".findIndex(el => el === "}
-        <Emoji name="puppy" size={58} />
+        <Emoji name="puppy" size={52} />
         {")"}
       </Code>
       <Arrow opacity={resultOp} />
@@ -357,7 +356,7 @@ const FindRow: FC<{ frame: number; phase: Phase }> = ({ frame, phase }) => {
           items={items}
           itemStyle={(i) => {
             const on = phase === "active" && i === cursor && frame >= 36;
-            const after = phase === "done" || (phase === "active" && frame >= 92);
+            const after = phase === "active" && frame >= 92;
             const match = i === 1;
             return {
               opacity: after ? (match ? 1 : 0.32) : 1,

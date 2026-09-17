@@ -6,19 +6,24 @@ body {
 
 .sheet {
   position: absolute;
-  inset: 40px 72px;
+  top: 48px;
+  bottom: 48px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 10px;
+  align-items: stretch;
+  gap: 6px;
 }
 
 .sheet-row {
   display: grid;
-  grid-template-columns: 292px minmax(640px, 1.25fr) 92px minmax(260px, 1fr);
+  grid-template-columns: 276px minmax(400px, max-content) 72px max-content;
   column-gap: 12px;
   align-items: center;
-  min-height: 86px;
+  min-height: 82px;
 }
 
 .sheet-row > :nth-child(1),
@@ -28,5 +33,5 @@ body {
 }
 
 .sheet-row > :nth-child(3) {
-  justify-self: center;
+  justify-self: start;
 }
