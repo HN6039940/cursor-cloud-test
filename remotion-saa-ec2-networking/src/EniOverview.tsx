@@ -298,6 +298,9 @@ const PrimaryScene: FC<{ frame: number }> = ({ frame }) => {
   ];
   const p0 = walkPolyline(path0, t0);
   const p1 = walkPolyline(path1, t1);
+  const onStage = frame >= primZoom && frame < moveZoom;
+  const appear = smoothT(frame, primZoom, primHold);
+  const fadeOut = 1 - smoothT(frame, moveZoom, moveHold);
   return (
     <div
       style={{
@@ -311,6 +314,7 @@ const PrimaryScene: FC<{ frame: number }> = ({ frame }) => {
         border: "1.5px solid rgba(255,255,255,0.1)",
         padding: "28px 36px",
         boxSizing: "border-box",
+        opacity: appear * (onStage ? 1 : fadeOut),
       }}
     >
       <Txt style={{ fontSize: 14, letterSpacing: "0.16em", color: MUTED, fontWeight: 600 }}>2 本の通り道</Txt>
@@ -405,6 +409,8 @@ const MoveScene: FC<{ frame: number }> = ({ frame }) => {
   const tAfter = loopT(frame, moveHold + P_DIAGRAM + P_MOTION, 70);
   const pktBefore = walkPolyline(beforePath, tBefore);
   const pktAfter = walkPolyline(afterPath, tAfter);
+  const appear = smoothT(frame, moveZoom, moveHold);
+  const fadeOut = 1 - smoothT(frame, overviewBack, overviewHold);
   return (
     <div
       style={{
@@ -418,6 +424,7 @@ const MoveScene: FC<{ frame: number }> = ({ frame }) => {
         border: "1.5px solid rgba(255,255,255,0.1)",
         padding: "28px 36px",
         boxSizing: "border-box",
+        opacity: appear * fadeOut,
       }}
     >
       <Txt style={{ fontSize: 14, letterSpacing: "0.16em", color: MUTED, fontWeight: 600 }}>同じ AZ</Txt>
@@ -520,10 +527,9 @@ const MoveScene: FC<{ frame: number }> = ({ frame }) => {
 export const EniOverview: FC = () => {
   const frame = useCurrentFrame();
   const cam = cameraAt(frame);
-  const zoomed = cam.scale > 1.02;
   const titleOpacity =
     interpolate(frame, [0, 22], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }) *
-    (zoomed ? 0 : 1);
+    (frame < eniZoom ? 1 : smoothT(frame, overviewHold, overviewHold + 18));
   const appear = smoothT(frame, 8, 52);
   const pathDraw = smoothT(frame, 20, 90);
   const caption = captionFor(frame);
