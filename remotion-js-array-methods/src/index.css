@@ -1,18 +1,26 @@
 html,
 body {
   margin: 0;
-  background: #efefef;
+  background: #f3f3f3;
 }
 
-.method-row > :nth-child(1) {
-  justify-self: end;
+.sheet {
+  display: flex;
+  flex-direction: column;
+  width: max-content;
 }
 
-.method-row > :nth-child(2),
-.method-row > :nth-child(3) {
-  justify-self: center;
+.sheet-row {
+  display: grid;
+  grid-template-columns: 360px minmax(520px, max-content) 96px max-content;
+  column-gap: 16px;
+  align-items: center;
+  box-sizing: border-box;
 }
 
-.method-row > :nth-child(4) {
+.sheet-row > :nth-child(1),
+.sheet-row > :nth-child(2),
+.sheet-row > :nth-child(3),
+.sheet-row > :nth-child(4) {
   justify-self: start;
 }

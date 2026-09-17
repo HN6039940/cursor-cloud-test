@@ -1,20 +1,15 @@
 import type { CSSProperties, FC, ReactNode } from "react";
-import {
-  AbsoluteFill,
-  Easing,
-  interpolate,
-  Sequence,
-  useCurrentFrame,
-} from "remotion";
+import { AbsoluteFill, Easing, interpolate, useCurrentFrame } from "remotion";
 import { Emoji, MorphEmoji, type EmojiName } from "./emoji";
 
 export const FPS = 30;
 export const WIDTH = 1920;
 export const HEIGHT = 1080;
-export const INTRO_FRAMES = 60;
-export const SCENE_FRAMES = 150;
-export const OUTRO_FRAMES = 45;
+export const INTRO_FRAMES = 90;
+export const SCENE_FRAMES = 480;
+export const OUTRO_FRAMES = 120;
 export const METHOD_COUNT = 8;
+export const CAM_MOVE = 48;
 
 export const JS_ARRAY_METHODS = {
   fps: FPS,
@@ -23,15 +18,21 @@ export const JS_ARRAY_METHODS = {
   durationInFrames: INTRO_FRAMES + METHOD_COUNT * SCENE_FRAMES + OUTRO_FRAMES,
 };
 
-const BG = "#EFEFEF";
+const BG = "#F3F3F3";
 const INK = "#111111";
-const MUTED = "#6B6B6B";
-const TRUE = "#1B7F3A";
-const FALSE = "#C62828";
-const HIGHLIGHT = "#2563EB";
+const MUTED = "#5C5C5C";
+const OK = "#1B7F3A";
+const NG = "#C62828";
 const UI_FONT = 'Inter, "Noto Sans", "Liberation Sans", system-ui, sans-serif';
-const CODE_FONT =
-  '"Liberation Mono", "DejaVu Sans Mono", ui-monospace, monospace';
+const JP_FONT =
+  '"WenQuanYi Micro Hei", "Noto Sans", Inter, "Liberation Sans", sans-serif';
+const EMOJI = 88;
+const METHOD_EMOJI = 72;
+const OVERVIEW_SCALE = 0.48;
+const ROW_MIN_H = 168;
+const ROW_GAP = 52;
+
+type Phase = "pending" | "active" | "done";
 
 const lin = (
   frame: number,
@@ -45,182 +46,6 @@ const lin = (
   });
 };
 
-const sceneOpacity = (frame: number): number => {
-  return lin(frame, [0, 10, SCENE_FRAMES - 10, SCENE_FRAMES], [0, 1, 1, 0]);
-};
-
-const Code: FC<{ children: ReactNode; style?: CSSProperties }> = ({
-  children,
-  style,
-}) => {
-  return (
-    <span
-      style={{
-        fontFamily: CODE_FONT,
-        fontSize: 42,
-        fontWeight: 700,
-        color: INK,
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 2,
-        whiteSpace: "nowrap",
-        ...style,
-      }}
-    >
-      {children}
-    </span>
-  );
-};
-
-const Slot: FC<{
-  children: ReactNode;
-  highlight?: number;
-  dim?: number;
-  label?: ReactNode;
-}> = ({ children, highlight = 0, dim = 1, label }) => {
-  return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        gap: 8,
-        width: 100,
-      }}
-    >
-      <div
-        style={{
-          width: 100,
-          height: 100,
-          borderRadius: 18,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: `rgba(37, 99, 235, ${0.16 * highlight})`,
-          boxShadow:
-            highlight > 0.25
-              ? `inset 0 0 0 3px rgba(37, 99, 235, ${highlight})`
-              : "none",
-          opacity: 0.22 + 0.78 * dim,
-          transform: `scale(${0.9 + 0.1 * dim})`,
-        }}
-      >
-        {children}
-      </div>
-      <div
-        style={{
-          height: 28,
-          fontFamily: CODE_FONT,
-          fontSize: 22,
-          fontWeight: 700,
-          color: MUTED,
-        }}
-      >
-        {label}
-      </div>
-    </div>
-  );
-};
-
-const Arrow: FC<{ opacity: number }> = ({ opacity }) => {
-  return (
-    <Code style={{ opacity, fontSize: 48, padding: "0 12px" }}>{"=>"}</Code>
-  );
-};
-
-const FrameChrome: FC<{
-  index: number;
-  name: string;
-  hint: string;
-  children: ReactNode;
-  opacity: number;
-}> = ({ index, name, hint, children, opacity }) => {
-  return (
-    <AbsoluteFill
-      style={{
-        backgroundColor: BG,
-        fontFamily: UI_FONT,
-        color: INK,
-        opacity,
-      }}
-    >
-      <div
-        style={{
-          position: "absolute",
-          top: 48,
-          left: 64,
-          right: 64,
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "baseline",
-        }}
-      >
-        <div style={{ fontSize: 28, fontWeight: 600, color: MUTED }}>
-          JavaScript Array Methods
-        </div>
-        <div style={{ fontFamily: CODE_FONT, fontSize: 28, color: MUTED }}>
-          {index + 1} / {METHOD_COUNT}
-        </div>
-      </div>
-      <div
-        style={{
-          position: "absolute",
-          top: 160,
-          left: 0,
-          right: 0,
-          textAlign: "center",
-        }}
-      >
-        <div style={{ fontSize: 84, fontWeight: 800, letterSpacing: -1 }}>
-          {name}
-        </div>
-        <div style={{ marginTop: 8, fontSize: 28, color: MUTED }}>{hint}</div>
-      </div>
-      <div
-        className="method-row"
-        style={{
-          position: "absolute",
-          top: 390,
-          left: 40,
-          right: 40,
-          display: "grid",
-          gridTemplateColumns: "minmax(0, 1fr) auto auto minmax(0, 1fr)",
-          alignItems: "center",
-          columnGap: 20,
-        }}
-      >
-        {children}
-      </div>
-      <div
-        style={{
-          position: "absolute",
-          bottom: 52,
-          left: 0,
-          right: 0,
-          display: "flex",
-          justifyContent: "center",
-          gap: 12,
-        }}
-      >
-        {Array.from({ length: METHOD_COUNT }, (_, i) => {
-          const on = i === index;
-          return (
-            <div
-              key={i}
-              style={{
-                width: on ? 36 : 12,
-                height: 12,
-                borderRadius: 6,
-                background: on ? INK : "#C9C9C9",
-              }}
-            />
-          );
-        })}
-      </div>
-    </AbsoluteFill>
-  );
-};
-
 const stagger = (
   frame: number,
   start: number,
@@ -232,495 +57,780 @@ const stagger = (
   return lin(frame, [start + index * span, start + (index + 1) * span], [0, 1]);
 };
 
-const MapScene: FC = () => {
-  const frame = useCurrentFrame();
-  const methodOp = lin(frame, [18, 36], [0, 1]);
-  const resultOp = lin(frame, [108, 126], [0, 1]);
+const phaseOp = (phase: Phase, activeOp: number): number => {
+  if (phase === "done") {
+    return 1;
+  }
+  if (phase === "pending") {
+    return 0;
+  }
+  return activeOp;
+};
+
+const Code: FC<{ children: ReactNode; style?: CSSProperties }> = ({
+  children,
+  style,
+}) => {
   return (
-    <FrameChrome
-      index={0}
-      name="map"
-      hint="transform every item"
-      opacity={sceneOpacity(frame)}
+    <span
+      style={{
+        fontFamily: UI_FONT,
+        fontSize: 44,
+        fontWeight: 500,
+        color: INK,
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 4,
+        whiteSpace: "nowrap",
+        letterSpacing: -0.4,
+        ...style,
+      }}
     >
-      <div style={{ display: "flex", gap: 8 }}>
-        {[0, 1, 2, 3].map((i) => (
-          <Slot key={i}>
-            <MorphEmoji
-              from="dog"
-              to="puppy"
-              progress={stagger(frame, 48, 108, i, 4)}
-              size={76}
-            />
-          </Slot>
-        ))}
+      {children}
+    </span>
+  );
+};
+
+const Arrow: FC<{ opacity: number }> = ({ opacity }) => {
+  return (
+    <Code style={{ opacity, fontSize: 48, padding: "0 4px" }}>{"=>"}</Code>
+  );
+};
+
+const Cluster: FC<{
+  items: EmojiName[];
+  size?: number;
+  itemStyle?: (index: number) => CSSProperties;
+  label?: (index: number) => ReactNode;
+}> = ({ items, size = EMOJI, itemStyle, label }) => {
+  return (
+    <div style={{ display: "flex", alignItems: "flex-start", gap: 4 }}>
+      {items.map((name, i) => (
+        <div
+          key={`${name}-${i}`}
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 4,
+            minWidth: size,
+            ...itemStyle?.(i),
+          }}
+        >
+          <Emoji name={name} size={size} />
+          <div
+            style={{
+              height: 22,
+              fontFamily: JP_FONT,
+              fontSize: 16,
+              fontWeight: 700,
+              color: MUTED,
+              lineHeight: "22px",
+            }}
+          >
+            {label?.(i) ?? null}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+const Cells: FC<{ children: ReactNode }> = ({ children }) => {
+  return <div style={{ display: "contents" }}>{children}</div>;
+};
+
+const Caption: FC<{
+  kicker: string;
+  lines: readonly { from: number; to: number; text: string }[];
+  frame: number;
+}> = ({ kicker, lines, frame }) => {
+  let text = "";
+  let op = 0;
+  for (const line of lines) {
+    const lineOp = lin(
+      frame,
+      [line.from, line.from + 10, line.to - 10, line.to],
+      [0, 1, 1, 0],
+    );
+    if (lineOp >= op) {
+      op = lineOp;
+      text = line.text;
+    }
+  }
+  const kickerOp = lin(frame, [8, 24], [0, 1]);
+  return (
+    <div
+      style={{
+        position: "absolute",
+        left: 0,
+        right: 0,
+        bottom: 0,
+        height: 176,
+        background:
+          "linear-gradient(to top, #F3F3F3 64%, rgba(243,243,243,0))",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "flex-end",
+        paddingBottom: 44,
+        gap: 8,
+        pointerEvents: "none",
+      }}
+    >
+      <div
+        style={{
+          fontFamily: UI_FONT,
+          fontSize: 26,
+          fontWeight: 600,
+          color: MUTED,
+          opacity: kickerOp,
+          letterSpacing: 0.4,
+        }}
+      >
+        {kicker}
+      </div>
+      <div
+        style={{
+          fontFamily: JP_FONT,
+          fontSize: 38,
+          fontWeight: 700,
+          color: INK,
+          opacity: op,
+          textAlign: "center",
+          lineHeight: 1.35,
+          minHeight: 52,
+        }}
+      >
+        {text}
+      </div>
+    </div>
+  );
+};
+
+const MapRow: FC<{ frame: number; phase: Phase }> = ({ frame, phase }) => {
+  const methodOp = phaseOp(phase, lin(frame, [36, 64], [0, 1]));
+  const resultOp = phaseOp(phase, lin(frame, [96, 120], [0, 1]));
+  const arrowOp = phaseOp(phase, lin(frame, [300, 330], [0, 1]));
+  const inputOp = phase === "pending" ? 0.3 : 1;
+  return (
+    <Cells>
+      <div style={{ opacity: inputOp }}>
+        <Cluster
+          items={["dog", "dog", "dog", "dog"]}
+          label={(i) => {
+            const pulse =
+              phase === "active" ? stagger(frame, 80, 300, i, 4) : 0;
+            if (phase !== "active" || pulse < 0.15 || frame >= 310) {
+              return null;
+            }
+            return <span style={{ color: INK }}>変換</span>;
+          }}
+          itemStyle={(i) => {
+            const pulse =
+              phase === "active" ? stagger(frame, 80, 300, i, 4) : 0;
+            const bump = pulse > 0 && pulse < 1 ? 0.12 : 0;
+            return { transform: `scale(${1 + bump})` };
+          }}
+        />
       </div>
       <Code style={{ opacity: methodOp }}>
         {".map("}
-        <Emoji name="dog" size={44} />
+        <Emoji name="dog" size={METHOD_EMOJI} />
         {" => "}
-        <Emoji name="puppy" size={44} />
+        <Emoji name="puppy" size={METHOD_EMOJI} />
         {")"}
       </Code>
-      <Arrow opacity={resultOp} />
-      <div style={{ display: "flex", gap: 8, opacity: resultOp }}>
-        {[0, 1, 2, 3].map((i) => (
-          <Slot key={i}>
-            <Emoji name="puppy" size={76} />
-          </Slot>
-        ))}
-      </div>
-    </FrameChrome>
-  );
-};
-
-const FilterScene: FC = () => {
-  const frame = useCurrentFrame();
-  const methodOp = lin(frame, [18, 36], [0, 1]);
-  const resultOp = lin(frame, [108, 126], [0, 1]);
-  const items: EmojiName[] = ["dog", "puppy", "dog", "dog"];
-  return (
-    <FrameChrome
-      index={1}
-      name="filter"
-      hint="keep matching items"
-      opacity={sceneOpacity(frame)}
-    >
-      <div style={{ display: "flex", gap: 8 }}>
-        {items.map((name, i) => {
-          const keep = name === "puppy";
-          const drop = stagger(frame, 48, 108, i, 4);
-          return (
-            <Slot key={i} dim={keep ? 1 : 1 - drop} highlight={keep ? drop : 0}>
-              <Emoji name={name} size={76} />
-            </Slot>
-          );
-        })}
-      </div>
-      <Code style={{ opacity: methodOp }}>
-        .filter(
-        <Emoji name="puppy" size={44} />)
-      </Code>
-      <Arrow opacity={resultOp} />
-      <div style={{ opacity: resultOp }}>
-        <Slot>
-          <Emoji name="puppy" size={76} />
-        </Slot>
-      </div>
-    </FrameChrome>
-  );
-};
-
-const EveryScene: FC = () => {
-  const frame = useCurrentFrame();
-  const methodOp = lin(frame, [18, 36], [0, 1]);
-  const resultOp = lin(frame, [108, 126], [0, 1]);
-  const items: EmojiName[] = ["dog", "dog", "puppy", "dog"];
-  const scan = lin(frame, [48, 108], [0, 2.999]);
-  const cursor = Math.min(2, Math.floor(scan));
-  return (
-    <FrameChrome
-      index={2}
-      name="every"
-      hint="true only if all match"
-      opacity={sceneOpacity(frame)}
-    >
-      <div style={{ display: "flex", gap: 8 }}>
-        {items.map((name, i) => {
-          const visited = scan > i;
-          const ok = name === "dog";
-          return (
-            <Slot
-              key={i}
-              highlight={i === cursor && frame >= 48 ? 1 : 0}
-              dim={visited && !ok ? 0.35 : 1}
-              label={
-                visited ? (
-                  <span style={{ color: ok ? TRUE : FALSE }}>
-                    {ok ? "✓" : "✗"}
-                  </span>
-                ) : null
-              }
-            >
-              <Emoji name={name} size={76} />
-            </Slot>
-          );
-        })}
-      </div>
-      <Code style={{ opacity: methodOp }}>
-        .every(
-        <Emoji name="dog" size={44} />)
-      </Code>
-      <Arrow opacity={resultOp} />
-      <Code style={{ opacity: resultOp, color: FALSE, fontSize: 64 }}>
-        false
-      </Code>
-    </FrameChrome>
-  );
-};
-
-const SomeScene: FC = () => {
-  const frame = useCurrentFrame();
-  const methodOp = lin(frame, [18, 36], [0, 1]);
-  const resultOp = lin(frame, [108, 126], [0, 1]);
-  const items: EmojiName[] = ["dog", "puppy", "puppy", "dog"];
-  const scan = lin(frame, [48, 90], [0, 1.999]);
-  const cursor = Math.min(1, Math.floor(scan));
-  return (
-    <FrameChrome
-      index={3}
-      name="some"
-      hint="true if any item matches"
-      opacity={sceneOpacity(frame)}
-    >
-      <div style={{ display: "flex", gap: 8 }}>
-        {items.map((name, i) => {
-          const visited = scan > i;
-          const ok = name === "puppy";
-          return (
-            <Slot
-              key={i}
-              highlight={i === cursor && frame >= 48 ? 1 : 0}
-              dim={i > 1 && frame >= 90 ? 0.4 : 1}
-              label={
-                visited ? (
-                  <span style={{ color: ok ? TRUE : FALSE }}>
-                    {ok ? "✓" : "✗"}
-                  </span>
-                ) : null
-              }
-            >
-              <Emoji name={name} size={76} />
-            </Slot>
-          );
-        })}
-      </div>
-      <Code style={{ opacity: methodOp }}>
-        .some(
-        <Emoji name="puppy" size={44} />)
-      </Code>
-      <Arrow opacity={resultOp} />
-      <Code style={{ opacity: resultOp, color: TRUE, fontSize: 64 }}>true</Code>
-    </FrameChrome>
-  );
-};
-
-const FillScene: FC = () => {
-  const frame = useCurrentFrame();
-  const methodOp = lin(frame, [18, 36], [0, 1]);
-  const resultOp = lin(frame, [108, 126], [0, 1]);
-  return (
-    <FrameChrome
-      index={4}
-      name="fill"
-      hint="write a value from index 1"
-      opacity={sceneOpacity(frame)}
-    >
-      <div style={{ display: "flex", gap: 8 }}>
-        {[0, 1, 2, 3].map((i) => {
-          const fillAt = i === 0 ? 0 : stagger(frame, 48, 108, i - 1, 3);
-          return (
-            <Slot key={i} highlight={i >= 1 ? fillAt : 0} label={String(i)}>
-              {i === 0 ? (
-                <Emoji name="dog" size={76} />
-              ) : (
-                <MorphEmoji from="dog" to="puppy" progress={fillAt} size={76} />
-              )}
-            </Slot>
-          );
-        })}
-      </div>
-      <Code style={{ opacity: methodOp }}>
-        .fill(
-        <Emoji name="puppy" size={44} />, 1)
-      </Code>
-      <Arrow opacity={resultOp} />
-      <div style={{ display: "flex", gap: 8, opacity: resultOp }}>
-        {(["dog", "puppy", "puppy", "puppy"] as EmojiName[]).map((name, i) => (
-          <Slot key={i}>
-            <Emoji name={name} size={76} />
-          </Slot>
-        ))}
-      </div>
-    </FrameChrome>
-  );
-};
-
-const FindIndexScene: FC = () => {
-  const frame = useCurrentFrame();
-  const methodOp = lin(frame, [18, 36], [0, 1]);
-  const resultOp = lin(frame, [108, 126], [0, 1]);
-  const items: EmojiName[] = ["dog", "dog", "puppy", "dog"];
-  const scan = lin(frame, [48, 108], [0, 2.999]);
-  const cursor = Math.min(2, Math.floor(scan));
-  return (
-    <FrameChrome
-      index={5}
-      name="findIndex"
-      hint="index of the first match"
-      opacity={sceneOpacity(frame)}
-    >
-      <div style={{ display: "flex", gap: 8 }}>
-        {items.map((name, i) => {
-          const visited = scan > i;
-          const match = name === "puppy";
-          return (
-            <Slot
-              key={i}
-              highlight={i === cursor && frame >= 48 ? 1 : 0}
-              dim={i > 2 && frame >= 108 ? 0.4 : 1}
-              label={
-                <span style={{ color: visited && match ? HIGHLIGHT : MUTED }}>
-                  {i}
-                </span>
-              }
-            >
-              <Emoji name={name} size={76} />
-            </Slot>
-          );
-        })}
-      </div>
-      <Code style={{ opacity: methodOp, fontSize: 34 }}>
-        {".findIndex(el => el === "}
-        <Emoji name="puppy" size={40} />
-        {")"}
-      </Code>
-      <Arrow opacity={resultOp} />
-      <Code style={{ opacity: resultOp, color: HIGHLIGHT, fontSize: 72 }}>
-        2
-      </Code>
-    </FrameChrome>
-  );
-};
-
-const FindScene: FC = () => {
-  const frame = useCurrentFrame();
-  const methodOp = lin(frame, [18, 36], [0, 1]);
-  const resultOp = lin(frame, [108, 126], [0, 1]);
-  const items: EmojiName[] = ["dog", "puppy", "dog", "dog"];
-  const scan = lin(frame, [48, 96], [0, 1.999]);
-  const cursor = Math.min(1, Math.floor(scan));
-  return (
-    <FrameChrome
-      index={6}
-      name="find"
-      hint="return the first matching item"
-      opacity={sceneOpacity(frame)}
-    >
-      <div style={{ display: "flex", gap: 8 }}>
-        {items.map((name, i) => {
-          const match = i === 1;
-          const after = frame >= 96;
-          return (
-            <Slot
-              key={i}
-              highlight={i === cursor && frame >= 48 ? 1 : 0}
-              dim={after ? (match ? 1 : 0.28) : 1}
-            >
-              <Emoji name={name} size={76} />
-            </Slot>
-          );
-        })}
-      </div>
-      <Code style={{ opacity: methodOp }}>
-        .find(
-        <Emoji name="puppy" size={44} />)
-      </Code>
-      <Arrow opacity={resultOp} />
-      <div style={{ opacity: resultOp }}>
-        <Slot>
-          <Emoji name="puppy" size={76} />
-        </Slot>
-      </div>
-    </FrameChrome>
-  );
-};
-
-const ReduceScene: FC = () => {
-  const frame = useCurrentFrame();
-  const methodOp = lin(frame, [18, 36], [0, 1]);
-  const resultOp = lin(frame, [108, 126], [0, 1]);
-  const gather = lin(frame, [48, 108], [0, 1]);
-  const ingredients: EmojiName[] = [
-    "cucumber",
-    "tomato",
-    "pancakes",
-    "cheese",
-  ];
-  const offsets = [-150, -50, 50, 150];
-  return (
-    <FrameChrome
-      index={7}
-      name="reduce"
-      hint="fold items into one value"
-      opacity={sceneOpacity(frame)}
-    >
+      <Arrow opacity={arrowOp} />
       <div
         style={{
-          position: "relative",
-          width: 420,
-          height: 120,
           display: "flex",
           alignItems: "center",
-          justifyContent: "center",
+          gap: 4,
+          opacity: resultOp,
         }}
       >
-        {ingredients.map((name, i) => (
-          <div
-            key={name}
-            style={{
-              position: "absolute",
-              transform: `translateX(${offsets[i] * (1 - gather)}px) scale(${1 - 0.25 * gather})`,
-              opacity: 1 - 0.85 * gather,
-            }}
-          >
-            <Emoji name={name} size={76} />
-          </div>
-        ))}
-        <div style={{ opacity: gather, transform: `scale(${0.6 + 0.4 * gather})` }}>
-          <Emoji name="burger" size={88} />
-        </div>
+        {[0, 1, 2, 3].map((i) => {
+          const p =
+            phase === "done"
+              ? 1
+              : phase === "pending"
+                ? 0
+                : stagger(frame, 80, 300, i, 4);
+          return (
+            <MorphEmoji key={i} from="dog" to="puppy" progress={p} size={EMOJI} />
+          );
+        })}
       </div>
-      <Code style={{ opacity: methodOp, fontSize: 32 }}>
+    </Cells>
+  );
+};
+
+const FilterRow: FC<{ frame: number; phase: Phase }> = ({ frame, phase }) => {
+  const methodOp = phaseOp(phase, lin(frame, [36, 64], [0, 1]));
+  const resultOp = phaseOp(phase, lin(frame, [300, 330], [0, 1]));
+  const items: EmojiName[] = ["dog", "puppy", "dog", "dog"];
+  const inputOp = phase === "pending" ? 0.3 : 1;
+  return (
+    <Cells>
+      <div style={{ opacity: inputOp }}>
+        <Cluster
+          items={items}
+          label={(i) => {
+            if (phase !== "active" || frame >= 310) {
+              return null;
+            }
+            const drop = stagger(frame, 90, 280, i, 4);
+            if (drop < 0.2) {
+              return null;
+            }
+            const keep = items[i] === "puppy";
+            return (
+              <span style={{ color: keep ? OK : NG }}>
+                {keep ? "残す" : "外す"}
+              </span>
+            );
+          }}
+          itemStyle={(i) => {
+            const keep = items[i] === "puppy";
+            const drop = phase === "active" ? stagger(frame, 90, 280, i, 4) : 0;
+            return {
+              opacity: keep ? 1 : 1 - 0.72 * drop,
+              transform: `scale(${keep ? 1 + 0.08 * drop : 1 - 0.08 * drop})`,
+            };
+          }}
+        />
+      </div>
+      <Code style={{ opacity: methodOp }}>
+        {".filter("}
+        <Emoji name="puppy" size={METHOD_EMOJI} />
+        {")"}
+      </Code>
+      <Arrow opacity={resultOp} />
+      <div style={{ opacity: resultOp }}>
+        <Emoji name="puppy" size={EMOJI} />
+      </div>
+    </Cells>
+  );
+};
+
+const EveryRow: FC<{ frame: number; phase: Phase }> = ({ frame, phase }) => {
+  const methodOp = phaseOp(phase, lin(frame, [36, 64], [0, 1]));
+  const resultOp = phaseOp(phase, lin(frame, [300, 330], [0, 1]));
+  const items: EmojiName[] = ["dog", "dog", "puppy", "dog"];
+  const scan = phase === "active" ? lin(frame, [88, 280], [0, 2.999]) : 0;
+  const cursor = Math.min(2, Math.floor(scan));
+  const inputOp = phase === "pending" ? 0.3 : 1;
+  return (
+    <Cells>
+      <div style={{ opacity: inputOp }}>
+        <Cluster
+          items={items}
+          label={(i) => {
+            if (phase !== "active" || scan <= i || frame >= 310) {
+              return null;
+            }
+            const ok = items[i] === "dog";
+            return (
+              <span style={{ color: ok ? OK : NG }}>{ok ? "犬" : "違う"}</span>
+            );
+          }}
+          itemStyle={(i) => {
+            const visited = phase === "active" && scan > i;
+            const ok = items[i] === "dog";
+            const on = phase === "active" && i === cursor && frame >= 88;
+            return {
+              opacity: visited && !ok ? 0.4 : 1,
+              transform: `scale(${on ? 1.14 : 1})`,
+            };
+          }}
+        />
+      </div>
+      <Code style={{ opacity: methodOp }}>
+        {".every("}
+        <Emoji name="dog" size={METHOD_EMOJI} />
+        {")"}
+      </Code>
+      <Arrow opacity={resultOp} />
+      <Code style={{ opacity: resultOp, fontSize: 56, color: NG }}>false</Code>
+    </Cells>
+  );
+};
+
+const SomeRow: FC<{ frame: number; phase: Phase }> = ({ frame, phase }) => {
+  const methodOp = phaseOp(phase, lin(frame, [36, 64], [0, 1]));
+  const resultOp = phaseOp(phase, lin(frame, [300, 330], [0, 1]));
+  const items: EmojiName[] = ["dog", "puppy", "puppy", "dog"];
+  const scan = phase === "active" ? lin(frame, [88, 240], [0, 1.999]) : 0;
+  const cursor = Math.min(1, Math.floor(scan));
+  const inputOp = phase === "pending" ? 0.3 : 1;
+  const found = phase === "active" && frame >= 240;
+  return (
+    <Cells>
+      <div style={{ opacity: inputOp }}>
+        <Cluster
+          items={items}
+          label={(i) => {
+            if (phase !== "active" || scan <= i || frame >= 310) {
+              return null;
+            }
+            const ok = items[i] === "puppy";
+            return (
+              <span style={{ color: ok ? OK : MUTED }}>
+                {ok ? "あり" : "まだ"}
+              </span>
+            );
+          }}
+          itemStyle={(i) => {
+            const on = phase === "active" && i === cursor && frame >= 88;
+            const match = items[i] === "puppy";
+            return {
+              opacity: found && i > 1 ? 0.38 : 1,
+              transform: `scale(${on || (found && i === 1 && match) ? 1.14 : 1})`,
+            };
+          }}
+        />
+      </div>
+      <Code style={{ opacity: methodOp }}>
+        {".some("}
+        <Emoji name="puppy" size={METHOD_EMOJI} />
+        {")"}
+      </Code>
+      <Arrow opacity={resultOp} />
+      <Code style={{ opacity: resultOp, fontSize: 56, color: OK }}>true</Code>
+    </Cells>
+  );
+};
+
+const FillRow: FC<{ frame: number; phase: Phase }> = ({ frame, phase }) => {
+  const methodOp = phaseOp(phase, lin(frame, [36, 64], [0, 1]));
+  const resultOp = phaseOp(phase, lin(frame, [96, 120], [0, 1]));
+  const arrowOp = phaseOp(phase, lin(frame, [300, 330], [0, 1]));
+  const inputOp = phase === "pending" ? 0.3 : 1;
+  return (
+    <Cells>
+      <div style={{ opacity: inputOp }}>
+        <Cluster
+          items={["dog", "dog", "dog", "dog"]}
+          label={(i) => {
+            if (phase !== "active" || frame < 90 || frame >= 310) {
+              return null;
+            }
+            return (
+              <span style={{ color: i === 0 ? MUTED : INK }}>
+                {i === 0 ? "そのまま" : String(i)}
+              </span>
+            );
+          }}
+          itemStyle={(i) => {
+            const fillAt =
+              phase === "active" && i >= 1
+                ? stagger(frame, 90, 280, i - 1, 3)
+                : 0;
+            return { transform: `scale(${1 + 0.1 * fillAt})` };
+          }}
+        />
+      </div>
+      <Code style={{ opacity: methodOp }}>
+        {".fill("}
+        <Emoji name="puppy" size={METHOD_EMOJI} />
+        {", 1)"}
+      </Code>
+      <Arrow opacity={arrowOp} />
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 4,
+          opacity: resultOp,
+        }}
+      >
+        {[0, 1, 2, 3].map((i) => {
+          const fillAt =
+            i === 0
+              ? 0
+              : phase === "done"
+                ? 1
+                : phase === "pending"
+                  ? 0
+                  : stagger(frame, 90, 280, i - 1, 3);
+          return (
+            <MorphEmoji key={i} from="dog" to="puppy" progress={fillAt} size={EMOJI} />
+          );
+        })}
+      </div>
+    </Cells>
+  );
+};
+
+const FindIndexRow: FC<{ frame: number; phase: Phase }> = ({ frame, phase }) => {
+  const methodOp = phaseOp(phase, lin(frame, [36, 64], [0, 1]));
+  const resultOp = phaseOp(phase, lin(frame, [300, 330], [0, 1]));
+  const items: EmojiName[] = ["dog", "dog", "puppy", "dog"];
+  const scan = phase === "active" ? lin(frame, [88, 280], [0, 2.999]) : 0;
+  const cursor = Math.min(2, Math.floor(scan));
+  const inputOp = phase === "pending" ? 0.3 : 1;
+  const found = phase === "active" && frame >= 280;
+  return (
+    <Cells>
+      <div style={{ opacity: inputOp }}>
+        <Cluster
+          items={items}
+          label={(i) => {
+            if (phase !== "active" || frame < 88) {
+              return null;
+            }
+            const on = i === cursor && frame >= 88;
+            return (
+              <span style={{ color: found && i === 2 ? OK : on ? INK : MUTED }}>
+                {i}
+              </span>
+            );
+          }}
+          itemStyle={(i) => {
+            const on = phase === "active" && i === cursor && frame >= 88;
+            const dimTail = found && i > 2;
+            return {
+              opacity: dimTail ? 0.38 : 1,
+              transform: `scale(${on || (found && i === 2) ? 1.14 : 1})`,
+            };
+          }}
+        />
+      </div>
+      <Code style={{ opacity: methodOp, fontSize: 36 }}>
+        {".findIndex(el => el === "}
+        <Emoji name="puppy" size={56} />
+        {")"}
+      </Code>
+      <Arrow opacity={resultOp} />
+      <Code style={{ opacity: resultOp, fontSize: 64 }}>2</Code>
+    </Cells>
+  );
+};
+
+const FindRow: FC<{ frame: number; phase: Phase }> = ({ frame, phase }) => {
+  const methodOp = phaseOp(phase, lin(frame, [36, 64], [0, 1]));
+  const resultOp = phaseOp(phase, lin(frame, [300, 330], [0, 1]));
+  const items: EmojiName[] = ["dog", "puppy", "dog", "dog"];
+  const scan = phase === "active" ? lin(frame, [88, 250], [0, 1.999]) : 0;
+  const cursor = Math.min(1, Math.floor(scan));
+  const inputOp = phase === "pending" ? 0.3 : 1;
+  const after = phase === "active" && frame >= 250;
+  return (
+    <Cells>
+      <div style={{ opacity: inputOp }}>
+        <Cluster
+          items={items}
+          label={(i) => {
+            if (phase !== "active" || scan <= i || frame >= 310) {
+              return null;
+            }
+            const match = i === 1;
+            return (
+              <span style={{ color: match ? OK : MUTED }}>
+                {match ? "これ" : "違う"}
+              </span>
+            );
+          }}
+          itemStyle={(i) => {
+            const on = phase === "active" && i === cursor && frame >= 88;
+            const match = i === 1;
+            return {
+              opacity: after ? (match ? 1 : 0.32) : 1,
+              transform: `scale(${on || (after && match) ? 1.14 : 1})`,
+            };
+          }}
+        />
+      </div>
+      <Code style={{ opacity: methodOp }}>
+        {".find("}
+        <Emoji name="puppy" size={METHOD_EMOJI} />
+        {")"}
+      </Code>
+      <Arrow opacity={resultOp} />
+      <div style={{ opacity: resultOp }}>
+        <Emoji name="puppy" size={EMOJI} />
+      </div>
+    </Cells>
+  );
+};
+
+const ReduceRow: FC<{ frame: number; phase: Phase }> = ({ frame, phase }) => {
+  const methodOp = phaseOp(phase, lin(frame, [36, 64], [0, 1]));
+  const resultOp = phaseOp(phase, lin(frame, [300, 330], [0, 1]));
+  const gather = phase === "active" ? lin(frame, [90, 280], [0, 1]) : 0;
+  const ingredients: EmojiName[] = ["cucumber", "tomato", "pancakes", "cheese"];
+  const names = ["キュウリ", "トマト", "パンケーキ", "チーズ"];
+  const step = phase === "active" ? lin(frame, [90, 260], [0, 3.999]) : 0;
+  const inputOp = phase === "pending" ? 0.3 : 1;
+  return (
+    <Cells>
+      <div style={{ opacity: inputOp }}>
+        <Cluster
+          items={ingredients}
+          label={(i) => {
+            if (phase !== "active" || step <= i || frame >= 310) {
+              return null;
+            }
+            return <span style={{ color: INK }}>{names[i]}</span>;
+          }}
+          itemStyle={(i) => {
+            const dir = i < 2 ? 1 : -1;
+            const dist = i === 0 || i === 3 ? 22 : 10;
+            const active = step > i;
+            return {
+              opacity: active || phase !== "active" ? 1 : 0.45,
+              transform: `translateX(${dir * dist * gather}px) scale(${1 - 0.06 * gather})`,
+            };
+          }}
+        />
+      </div>
+      <Code style={{ opacity: methodOp, fontSize: 34 }}>
         {".reduce((acc, cur) => acc + cur)"}
       </Code>
       <Arrow opacity={resultOp} />
-      <div style={{ opacity: resultOp }}>
-        <Slot>
-          <Emoji name="burger" size={76} />
-        </Slot>
+      <div
+        style={{
+          opacity: resultOp,
+          transform: `scale(${phase === "done" ? 1 : 0.72 + 0.28 * resultOp})`,
+        }}
+      >
+        <Emoji name="burger" size={EMOJI} />
       </div>
-    </FrameChrome>
+    </Cells>
   );
 };
 
-const Intro: FC = () => {
+const ROWS = [
+  MapRow,
+  FilterRow,
+  EveryRow,
+  SomeRow,
+  FillRow,
+  FindIndexRow,
+  FindRow,
+  ReduceRow,
+] as const;
+
+const METHOD_META = [
+  {
+    kicker: ".map",
+    lines: [
+      { from: 24, to: 170, text: "すべての要素を、同じルールで変換する" },
+      { from: 175, to: 310, text: "犬を1匹ずつ、子犬に変えていく" },
+      { from: 318, to: 470, text: "結果は子犬が4匹" },
+    ],
+  },
+  {
+    kicker: ".filter",
+    lines: [
+      { from: 24, to: 170, text: "条件に合う要素だけ残す" },
+      { from: 175, to: 310, text: "子犬だけ残して、ほかは外す" },
+      { from: 318, to: 470, text: "残ったのは子犬1匹" },
+    ],
+  },
+  {
+    kicker: ".every",
+    lines: [
+      { from: 24, to: 170, text: "全部が条件を満たすか、左から確かめる" },
+      { from: 175, to: 310, text: "子犬が混ざっていないか見ていく" },
+      { from: 318, to: 470, text: "子犬がいるので false" },
+    ],
+  },
+  {
+    kicker: ".some",
+    lines: [
+      { from: 24, to: 170, text: "ひとつでも条件を満たせば true" },
+      { from: 175, to: 310, text: "子犬がいるか、左から探す" },
+      { from: 318, to: 470, text: "見つかったので true" },
+    ],
+  },
+  {
+    kicker: ".fill",
+    lines: [
+      { from: 24, to: 170, text: "指定した位置から、同じ値で埋める" },
+      { from: 175, to: 310, text: "index 1 から先を子犬にする" },
+      { from: 318, to: 470, text: "先頭の犬はそのまま残る" },
+    ],
+  },
+  {
+    kicker: ".findIndex",
+    lines: [
+      { from: 24, to: 170, text: "最初に一致した要素の位置を返す" },
+      { from: 175, to: 310, text: "子犬は何番目？ 0、1、2…" },
+      { from: 318, to: 470, text: "2番目で一致したので 2" },
+    ],
+  },
+  {
+    kicker: ".find",
+    lines: [
+      { from: 24, to: 170, text: "最初に一致した要素そのものを返す" },
+      { from: 175, to: 310, text: "子犬を見つけたら、それを返す" },
+      { from: 318, to: 470, text: "結果は子犬" },
+    ],
+  },
+  {
+    kicker: ".reduce",
+    lines: [
+      { from: 24, to: 170, text: "要素を順に足して、ひとつにまとめる" },
+      { from: 175, to: 310, text: "材料を重ねていくと…" },
+      { from: 318, to: 470, text: "ハンバーガーになる" },
+    ],
+  },
+] as const;
+
+const OverviewSheet: FC<{ done: boolean }> = ({ done }) => {
+  return (
+    <div
+      style={{
+        position: "absolute",
+        inset: "88px 0 48px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        transform: `scale(${OVERVIEW_SCALE})`,
+        transformOrigin: "center center",
+      }}
+    >
+      <div className="sheet" style={{ gap: ROW_GAP }}>
+        {ROWS.map((Row, i) => (
+          <div
+            className="sheet-row"
+            key={i}
+            style={{ minHeight: ROW_MIN_H, padding: "8px 12px" }}
+          >
+            <Row
+              frame={done ? SCENE_FRAMES : 70}
+              phase={done ? "done" : "active"}
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+export const JsArrayMethods: FC = () => {
   const frame = useCurrentFrame();
-  const op = lin(frame, [0, 12, INTRO_FRAMES - 8, INTRO_FRAMES], [0, 1, 1, 0]);
-  const names = [
-    "map",
-    "filter",
-    "every",
-    "some",
-    "fill",
-    "findIndex",
-    "find",
-    "reduce",
-  ];
+  const intro = frame < INTRO_FRAMES;
+  const bodyStart = INTRO_FRAMES;
+  const bodyEnd = INTRO_FRAMES + METHOD_COUNT * SCENE_FRAMES;
+  const outro = frame >= bodyEnd;
+  const body = frame - bodyStart;
+  const activeIndex = intro
+    ? -1
+    : outro
+      ? METHOD_COUNT
+      : Math.min(METHOD_COUNT - 1, Math.floor(body / SCENE_FRAMES));
+  const sceneFrame = intro || outro ? 0 : body - activeIndex * SCENE_FRAMES;
+  const sheetOp = intro ? lin(frame, [0, 18], [0, 1]) : 1;
+  const introCap = intro
+    ? lin(frame, [10, 26, INTRO_FRAMES - 18, INTRO_FRAMES], [0, 1, 1, 0])
+    : 0;
+  const outroCap = outro ? lin(frame, [8, 24], [0, 1]) : 0;
+  const chromeOp = intro || outro ? 0 : lin(sceneFrame, [8, 22], [0, 1]);
+  const enterY = lin(sceneFrame, [0, CAM_MOVE], [90, 0]);
+  const enterScale = lin(sceneFrame, [0, CAM_MOVE], [0.92, 1]);
+  const ActiveRow =
+    activeIndex >= 0 && activeIndex < METHOD_COUNT ? ROWS[activeIndex] : null;
+
   return (
     <AbsoluteFill
       style={{
         backgroundColor: BG,
         fontFamily: UI_FONT,
         color: INK,
-        opacity: op,
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 28,
+        opacity: sheetOp,
       }}
     >
-      <div style={{ fontSize: 24, fontWeight: 600, color: MUTED, letterSpacing: 0.02 }}>
-        JavaScript Array.prototype
+      {intro ? <OverviewSheet done={false} /> : null}
+      {outro ? <OverviewSheet done /> : null}
+      {!intro && !outro && ActiveRow ? (
+        <div
+          style={{
+            position: "absolute",
+            top: 120,
+            left: 36,
+            right: 36,
+            bottom: 176,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            transform: `translateY(${enterY}px) scale(${enterScale})`,
+            transformOrigin: "center center",
+          }}
+        >
+          <div
+            className="sheet-row"
+            style={{
+              minHeight: ROW_MIN_H,
+              padding: "18px 28px",
+              borderRadius: 24,
+              background: "rgba(255,255,255,0.88)",
+              boxShadow: "0 10px 40px rgba(17,17,17,0.06)",
+            }}
+          >
+            <ActiveRow frame={sceneFrame} phase="active" />
+          </div>
+        </div>
+      ) : null}
+      <div
+        style={{
+          position: "absolute",
+          top: 36,
+          left: 64,
+          right: 64,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "baseline",
+          opacity: chromeOp,
+          fontFamily: UI_FONT,
+        }}
+      >
+        <div style={{ fontSize: 22, fontWeight: 600, color: MUTED }}>
+          JavaScript Array Methods
+        </div>
+        <div style={{ fontSize: 22, color: MUTED }}>
+          {activeIndex + 1} / {METHOD_COUNT}
+        </div>
       </div>
-      <div style={{ fontSize: 72, fontWeight: 800, letterSpacing: -1 }}>
-        Array Methods
+      {!intro && !outro && activeIndex >= 0 && activeIndex < METHOD_COUNT ? (
+        <Caption
+          kicker={METHOD_META[activeIndex].kicker}
+          lines={METHOD_META[activeIndex].lines}
+          frame={sceneFrame}
+        />
+      ) : null}
+      <div
+        style={{
+          position: "absolute",
+          left: 80,
+          right: 80,
+          top: 48,
+          textAlign: "center",
+          fontFamily: JP_FONT,
+          fontSize: 40,
+          fontWeight: 700,
+          opacity: introCap,
+        }}
+      >
+        配列メソッドを、1つずつ見ていく
       </div>
       <div
         style={{
-          display: "flex",
-          flexWrap: "wrap",
-          justifyContent: "center",
-          gap: 14,
-          marginTop: 24,
-          maxWidth: 1600,
-          fontFamily: CODE_FONT,
-          fontSize: 26,
+          position: "absolute",
+          left: 80,
+          right: 80,
+          top: 48,
+          textAlign: "center",
+          fontFamily: JP_FONT,
+          fontSize: 40,
           fontWeight: 700,
+          opacity: outroCap,
         }}
       >
-        {names.map((name, i) => (
-          <span
-            key={name}
-            style={{ opacity: lin(frame, [10 + i * 4, 22 + i * 4], [0, 1]) }}
-          >
-            .{name}
-          </span>
-        ))}
+        入力 → メソッド → 結果
       </div>
-    </AbsoluteFill>
-  );
-};
-
-const Outro: FC = () => {
-  const frame = useCurrentFrame();
-  const op = lin(frame, [0, 10, OUTRO_FRAMES - 6, OUTRO_FRAMES], [0, 1, 1, 0]);
-  return (
-    <AbsoluteFill
-      style={{
-        backgroundColor: BG,
-        fontFamily: UI_FONT,
-        color: INK,
-        opacity: op,
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 16,
-      }}
-    >
-      <div style={{ fontSize: 56, fontWeight: 800 }}>input → method → result</div>
-      <div style={{ fontSize: 28, color: MUTED }}>Array.prototype 8 methods</div>
-    </AbsoluteFill>
-  );
-};
-
-const SCENES = [
-  MapScene,
-  FilterScene,
-  EveryScene,
-  SomeScene,
-  FillScene,
-  FindIndexScene,
-  FindScene,
-  ReduceScene,
-] as const;
-
-const SCENE_NAMES = [
-  "map",
-  "filter",
-  "every",
-  "some",
-  "fill",
-  "findIndex",
-  "find",
-  "reduce",
-] as const;
-
-export const JsArrayMethods: FC = () => {
-  return (
-    <AbsoluteFill style={{ backgroundColor: BG }}>
-      <Sequence durationInFrames={INTRO_FRAMES} name="Intro">
-        <Intro />
-      </Sequence>
-      {SCENES.map((Scene, i) => (
-        <Sequence
-          key={SCENE_NAMES[i]}
-          from={INTRO_FRAMES + i * SCENE_FRAMES}
-          durationInFrames={SCENE_FRAMES}
-          name={SCENE_NAMES[i]}
-        >
-          <Scene />
-        </Sequence>
-      ))}
-      <Sequence
-        from={INTRO_FRAMES + METHOD_COUNT * SCENE_FRAMES}
-        durationInFrames={OUTRO_FRAMES}
-        name="Outro"
-      >
-        <Outro />
-      </Sequence>
     </AbsoluteFill>
   );
 };
