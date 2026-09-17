@@ -5,33 +5,22 @@ body {
 }
 
 .sheet {
-  position: absolute;
-  top: 48px;
-  bottom: 48px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: max-content;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  align-items: stretch;
-  gap: 6px;
+  width: max-content;
 }
 
 .sheet-row {
   display: grid;
-  grid-template-columns: 276px minmax(400px, max-content) 72px max-content;
-  column-gap: 12px;
+  grid-template-columns: 360px minmax(520px, max-content) 96px max-content;
+  column-gap: 16px;
   align-items: center;
-  min-height: 82px;
+  box-sizing: border-box;
 }
 
 .sheet-row > :nth-child(1),
 .sheet-row > :nth-child(2),
+.sheet-row > :nth-child(3),
 .sheet-row > :nth-child(4) {
-  justify-self: start;
-}
-
-.sheet-row > :nth-child(3) {
   justify-self: start;
 }
