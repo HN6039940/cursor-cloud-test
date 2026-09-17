@@ -1,18 +1,32 @@
 html,
 body {
   margin: 0;
-  background: #efefef;
+  background: #f3f3f3;
 }
 
-.method-row > :nth-child(1) {
-  justify-self: end;
+.sheet {
+  position: absolute;
+  inset: 40px 72px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 10px;
 }
 
-.method-row > :nth-child(2),
-.method-row > :nth-child(3) {
-  justify-self: center;
+.sheet-row {
+  display: grid;
+  grid-template-columns: 292px minmax(640px, 1.25fr) 92px minmax(260px, 1fr);
+  column-gap: 12px;
+  align-items: center;
+  min-height: 86px;
 }
 
-.method-row > :nth-child(4) {
+.sheet-row > :nth-child(1),
+.sheet-row > :nth-child(2),
+.sheet-row > :nth-child(4) {
   justify-self: start;
+}
+
+.sheet-row > :nth-child(3) {
+  justify-self: center;
 }

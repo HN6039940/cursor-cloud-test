@@ -1,6 +1,6 @@
 # remotion-js-array-methods
 
-JavaScript の配列メソッド 8 個を、絵文字の入力配列 → メソッドの動き → `=>` の右側の結果、という 1 本の動画で辿る Remotion ドラフトです。
+JavaScript の配列メソッド 8 個を、参照チートシートと同じ行レイアウト（`[入力絵文字] .method(...) => [結果]`）で、1 本の動画として辿る Remotion ドラフトです。
 
 `remotion-request-flow/` と `remotion-tcp-handshake/` は触っていません。このディレクトリは別パッケージです。
 
@@ -75,14 +75,14 @@ npx remotion render JsArrayMethods out/js-array-methods.mp4 --browser-executable
 
 | ID | 尺 | 解像度 | 内容 |
 | --- | --- | --- | --- |
-| `JsArrayMethods` | 43.5s（1305 frames @ 30fps） | 1920×1080 | イントロ → 8 メソッドを各 5 秒 → アウトロ。補間はすべて線形 |
+| `JsArrayMethods` | 43.5s（1305 frames @ 30fps） | 1920×1080 | チートシート 8 行を画面に置き、上から順に input → motion → result。補間はすべて線形 |
 
 各メソッドは同じビートです。
 
-1. 入力配列
+1. 入力配列（左列。完了行はシートどおり残す）
 2. メソッド呼び出しの表示と動作
 3. `=>` のあとに結果
 
 ## ステータス
 
-第一稿です。見やすさ優先、ポリッシュは後回し。失敗パスやインタラクティブな Studio 操作は未実装です。
+参照チートシートに寄せた改稿です。スライド見出し・セル枠・✓✗ ラベルは外し、8 行を同一シート上でウォークスルーします。失敗パスやインタラクティブな Studio 操作は未実装です。
