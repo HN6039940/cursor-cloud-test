@@ -28,15 +28,11 @@ const JP_FONT =
   '"WenQuanYi Micro Hei", "Noto Sans", Inter, "Liberation Sans", sans-serif';
 const EMOJI = 88;
 const METHOD_EMOJI = 72;
+const OVERVIEW_SCALE = 0.48;
 const ROW_MIN_H = 168;
-const ROW_GAP = 64;
-const ROW_PITCH = ROW_MIN_H + ROW_GAP;
-const FOCUS_SCALE = 1.34;
-const OVERVIEW_SCALE = 0.5;
-const CAPTION_LIFT = 70;
+const ROW_GAP = 52;
 
 type Phase = "pending" | "active" | "done";
-type Cam = { scale: number; y: number };
 
 const lin = (
   frame: number,
@@ -70,22 +66,6 @@ const phaseOp = (phase: Phase, activeOp: number): number => {
   }
   return activeOp;
 };
-
-const mixCam = (a: Cam, b: Cam, t: number): Cam => {
-  return {
-    scale: a.scale + (b.scale - a.scale) * t,
-    y: a.y + (b.y - a.y) * t,
-  };
-};
-
-const cameraForRow = (index: number): Cam => {
-  return {
-    scale: FOCUS_SCALE,
-    y: -(index - (METHOD_COUNT - 1) / 2) * ROW_PITCH + CAPTION_LIFT,
-  };
-};
-
-const OVERVIEW_CAM: Cam = { scale: OVERVIEW_SCALE, y: 0 };
 
 const Code: FC<{ children: ReactNode; style?: CSSProperties }> = ({
   children,
@@ -168,12 +148,11 @@ const Caption: FC<{
   let text = "";
   let op = 0;
   for (const line of lines) {
-    const lineOp = lin(frame, [line.from, line.from + 10, line.to - 10, line.to], [
-      0,
-      1,
-      1,
-      0,
-    ]);
+    const lineOp = lin(
+      frame,
+      [line.from, line.from + 10, line.to - 10, line.to],
+      [0, 1, 1, 0],
+    );
     if (lineOp >= op) {
       op = lineOp;
       text = line.text;
@@ -184,20 +163,25 @@ const Caption: FC<{
     <div
       style={{
         position: "absolute",
-        left: 80,
-        right: 80,
-        bottom: 56,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        height: 176,
+        background:
+          "linear-gradient(to top, #F3F3F3 64%, rgba(243,243,243,0))",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        gap: 10,
+        justifyContent: "flex-end",
+        paddingBottom: 44,
+        gap: 8,
         pointerEvents: "none",
       }}
     >
       <div
         style={{
           fontFamily: UI_FONT,
-          fontSize: 28,
+          fontSize: 26,
           fontWeight: 600,
           color: MUTED,
           opacity: kickerOp,
@@ -209,13 +193,13 @@ const Caption: FC<{
       <div
         style={{
           fontFamily: JP_FONT,
-          fontSize: 40,
+          fontSize: 38,
           fontWeight: 700,
           color: INK,
           opacity: op,
           textAlign: "center",
           lineHeight: 1.35,
-          minHeight: 54,
+          minHeight: 52,
         }}
       >
         {text}
@@ -237,7 +221,7 @@ const MapRow: FC<{ frame: number; phase: Phase }> = ({ frame, phase }) => {
           label={(i) => {
             const pulse =
               phase === "active" ? stagger(frame, 80, 300, i, 4) : 0;
-            if (phase !== "active" || pulse < 0.15) {
+            if (phase !== "active" || pulse < 0.15 || frame >= 310) {
               return null;
             }
             return <span style={{ color: INK }}>変換</span>;
@@ -293,7 +277,7 @@ const FilterRow: FC<{ frame: number; phase: Phase }> = ({ frame, phase }) => {
         <Cluster
           items={items}
           label={(i) => {
-            if (phase !== "active") {
+            if (phase !== "active" || frame >= 310) {
               return null;
             }
             const drop = stagger(frame, 90, 280, i, 4);
@@ -343,7 +327,7 @@ const EveryRow: FC<{ frame: number; phase: Phase }> = ({ frame, phase }) => {
         <Cluster
           items={items}
           label={(i) => {
-            if (phase !== "active" || scan <= i) {
+            if (phase !== "active" || scan <= i || frame >= 310) {
               return null;
             }
             const ok = items[i] === "dog";
@@ -387,7 +371,7 @@ const SomeRow: FC<{ frame: number; phase: Phase }> = ({ frame, phase }) => {
         <Cluster
           items={items}
           label={(i) => {
-            if (phase !== "active" || scan <= i) {
+            if (phase !== "active" || scan <= i || frame >= 310) {
               return null;
             }
             const ok = items[i] === "puppy";
@@ -429,7 +413,7 @@ const FillRow: FC<{ frame: number; phase: Phase }> = ({ frame, phase }) => {
         <Cluster
           items={["dog", "dog", "dog", "dog"]}
           label={(i) => {
-            if (phase !== "active") {
+            if (phase !== "active" || frame < 90 || frame >= 310) {
               return null;
             }
             return (
@@ -493,7 +477,7 @@ const FindIndexRow: FC<{ frame: number; phase: Phase }> = ({ frame, phase }) => 
         <Cluster
           items={items}
           label={(i) => {
-            if (phase !== "active") {
+            if (phase !== "active" || frame < 88) {
               return null;
             }
             const on = i === cursor && frame >= 88;
@@ -538,7 +522,7 @@ const FindRow: FC<{ frame: number; phase: Phase }> = ({ frame, phase }) => {
         <Cluster
           items={items}
           label={(i) => {
-            if (phase !== "active" || scan <= i) {
+            if (phase !== "active" || scan <= i || frame >= 310) {
               return null;
             }
             const match = i === 1;
@@ -585,7 +569,7 @@ const ReduceRow: FC<{ frame: number; phase: Phase }> = ({ frame, phase }) => {
         <Cluster
           items={ingredients}
           label={(i) => {
-            if (phase !== "active" || step < i) {
+            if (phase !== "active" || step <= i || frame >= 310) {
               return null;
             }
             return <span style={{ color: INK }}>{names[i]}</span>;
@@ -695,23 +679,35 @@ const METHOD_META = [
   },
 ] as const;
 
-const getCamera = (frame: number): Cam => {
-  const bodyStart = INTRO_FRAMES;
-  const bodyEnd = INTRO_FRAMES + METHOD_COUNT * SCENE_FRAMES;
-  if (frame < bodyStart) {
-    return OVERVIEW_CAM;
-  }
-  if (frame >= bodyEnd) {
-    const t = lin(frame, [bodyEnd, bodyEnd + CAM_MOVE], [0, 1]);
-    return mixCam(cameraForRow(METHOD_COUNT - 1), OVERVIEW_CAM, t);
-  }
-  const body = frame - bodyStart;
-  const index = Math.min(METHOD_COUNT - 1, Math.floor(body / SCENE_FRAMES));
-  const local = body - index * SCENE_FRAMES;
-  const from = index === 0 ? OVERVIEW_CAM : cameraForRow(index - 1);
-  const to = cameraForRow(index);
-  const t = lin(local, [0, CAM_MOVE], [0, 1]);
-  return mixCam(from, to, t);
+const OverviewSheet: FC<{ done: boolean }> = ({ done }) => {
+  return (
+    <div
+      style={{
+        position: "absolute",
+        inset: "88px 0 48px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        transform: `scale(${OVERVIEW_SCALE})`,
+        transformOrigin: "center center",
+      }}
+    >
+      <div className="sheet" style={{ gap: ROW_GAP }}>
+        {ROWS.map((Row, i) => (
+          <div
+            className="sheet-row"
+            key={i}
+            style={{ minHeight: ROW_MIN_H, padding: "8px 12px" }}
+          >
+            <Row
+              frame={done ? SCENE_FRAMES : 70}
+              phase={done ? "done" : "active"}
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 };
 
 export const JsArrayMethods: FC = () => {
@@ -727,13 +723,16 @@ export const JsArrayMethods: FC = () => {
       ? METHOD_COUNT
       : Math.min(METHOD_COUNT - 1, Math.floor(body / SCENE_FRAMES));
   const sceneFrame = intro || outro ? 0 : body - activeIndex * SCENE_FRAMES;
-  const cam = getCamera(frame);
   const sheetOp = intro ? lin(frame, [0, 18], [0, 1]) : 1;
   const introCap = intro
-    ? lin(frame, [12, 28, INTRO_FRAMES - 16, INTRO_FRAMES], [0, 1, 1, 0])
+    ? lin(frame, [10, 26, INTRO_FRAMES - 18, INTRO_FRAMES], [0, 1, 1, 0])
     : 0;
-  const outroCap = outro ? lin(frame, [CAM_MOVE, CAM_MOVE + 14], [0, 1]) : 0;
+  const outroCap = outro ? lin(frame, [8, 24], [0, 1]) : 0;
   const chromeOp = intro || outro ? 0 : lin(sceneFrame, [8, 22], [0, 1]);
+  const enterY = lin(sceneFrame, [0, CAM_MOVE], [90, 0]);
+  const enterScale = lin(sceneFrame, [0, CAM_MOVE], [0.92, 1]);
+  const ActiveRow =
+    activeIndex >= 0 && activeIndex < METHOD_COUNT ? ROWS[activeIndex] : null;
 
   return (
     <AbsoluteFill
@@ -744,51 +743,37 @@ export const JsArrayMethods: FC = () => {
         opacity: sheetOp,
       }}
     >
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          transform: `translateY(${cam.y}px) scale(${cam.scale})`,
-          transformOrigin: "center center",
-        }}
-      >
-        <div className="sheet" style={{ gap: ROW_GAP }}>
-          {ROWS.map((Row, i) => {
-            const phase: Phase =
-              outro || i < activeIndex
-                ? "done"
-                : i === activeIndex
-                  ? "active"
-                  : "pending";
-            const neighbor =
-              intro || outro ? 1 : i === activeIndex ? 1 : 0.16;
-            return (
-              <div
-                className="sheet-row"
-                key={i}
-                style={{
-                  minHeight: ROW_MIN_H,
-                  padding: "8px 12px",
-                  borderRadius: 18,
-                  background:
-                    phase === "active"
-                      ? "rgba(255,255,255,0.72)"
-                      : "transparent",
-                  opacity: neighbor,
-                }}
-              >
-                <Row
-                  frame={outro ? SCENE_FRAMES : sceneFrame}
-                  phase={phase}
-                />
-              </div>
-            );
-          })}
+      {intro ? <OverviewSheet done={false} /> : null}
+      {outro ? <OverviewSheet done /> : null}
+      {!intro && !outro && ActiveRow ? (
+        <div
+          style={{
+            position: "absolute",
+            top: 120,
+            left: 36,
+            right: 36,
+            bottom: 176,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            transform: `translateY(${enterY}px) scale(${enterScale})`,
+            transformOrigin: "center center",
+          }}
+        >
+          <div
+            className="sheet-row"
+            style={{
+              minHeight: ROW_MIN_H,
+              padding: "18px 28px",
+              borderRadius: 24,
+              background: "rgba(255,255,255,0.88)",
+              boxShadow: "0 10px 40px rgba(17,17,17,0.06)",
+            }}
+          >
+            <ActiveRow frame={sceneFrame} phase="active" />
+          </div>
         </div>
-      </div>
+      ) : null}
       <div
         style={{
           position: "absolute",
@@ -805,7 +790,7 @@ export const JsArrayMethods: FC = () => {
         <div style={{ fontSize: 22, fontWeight: 600, color: MUTED }}>
           JavaScript Array Methods
         </div>
-        <div style={{ fontFamily: UI_FONT, fontSize: 22, color: MUTED }}>
+        <div style={{ fontSize: 22, color: MUTED }}>
           {activeIndex + 1} / {METHOD_COUNT}
         </div>
       </div>
@@ -821,7 +806,7 @@ export const JsArrayMethods: FC = () => {
           position: "absolute",
           left: 80,
           right: 80,
-          bottom: 64,
+          top: 48,
           textAlign: "center",
           fontFamily: JP_FONT,
           fontSize: 40,
@@ -836,7 +821,7 @@ export const JsArrayMethods: FC = () => {
           position: "absolute",
           left: 80,
           right: 80,
-          bottom: 64,
+          top: 48,
           textAlign: "center",
           fontFamily: JP_FONT,
           fontSize: 40,
