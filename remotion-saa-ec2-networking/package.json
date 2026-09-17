@@ -1,0 +1,37 @@
+{
+  "name": "remotion-saa-ec2-networking",
+  "version": "1.0.0",
+  "description": "AWS SAA explainer films: EC2 Placement Groups and ENI (Remotion personal trial)",
+  "repository": {},
+  "license": "UNLICENSED",
+  "private": true,
+  "dependencies": {
+    "@remotion/cli": "4.0.525",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "remotion": "4.0.525"
+  },
+  "devDependencies": {
+    "@remotion/eslint-config-flat": "4.0.525",
+    "@types/react": "19.2.7",
+    "@types/web": "0.0.166",
+    "eslint": "9.19.0",
+    "prettier": "3.8.1",
+    "typescript": "5.9.3"
+  },
+  "scripts": {
+    "dev": "remotion studio",
+    "studio": "remotion studio",
+    "build": "remotion bundle",
+    "render": "npm run render:placement && npm run render:eni",
+    "render:placement": "remotion render Ec2PlacementGroups out/saa-ec2-placement-groups.mp4",
+    "render:eni": "remotion render EniOverview out/saa-eni-overview.mp4",
+    "render:artifact": "npm run render:placement:artifact && npm run render:eni:artifact",
+    "render:placement:artifact": "remotion render Ec2PlacementGroups ../artifacts/saa-ec2-placement-groups.mp4",
+    "render:eni:artifact": "remotion render EniOverview ../artifacts/saa-eni-overview.mp4",
+    "still:placement": "remotion still Ec2PlacementGroups out/saa-ec2-placement-groups.png --frame=300",
+    "still:eni": "remotion still EniOverview out/saa-eni-overview.png --frame=240",
+    "upgrade": "remotion upgrade",
+    "lint": "eslint src && tsc"
+  }
+}
