@@ -74,37 +74,38 @@ npx remotion render EniOverview ../artifacts/saa-eni-overview.mp4 --browser-exec
 
 | ID | 尺 | 解像度 | 内容 |
 | --- | --- | --- | --- |
-| `Ec2PlacementGroups` | ~107.6s（3228 frames @ 30fps） | 1920×1080 | Cluster / Partition / Spread をリニアフォーカスし、3 類型比較と試験制約へ |
-| `EniOverview` | ~92.0s（2760 frames @ 30fps） | 1920×1080 | ENI の入れ物 → Primary/Secondary → 同一 AZ 移動 → SG 所属 → 試験点 |
+| `Ec2PlacementGroups` | 81.0s（2430 frames @ 30fps） | 1920×1080 | Cluster / Partition / Spread を緩いリニアフォーカス。通信と障害の広がりをパケットで見せ、最後に 3 類型比較 |
+| `EniOverview` | 65.0s（1950 frames @ 30fps） | 1920×1080 | ENI を通る通信 → eth0/eth1 の 2 経路 → 同一 AZ で ENI ごと移動 |
 
 画面タイトル:
 
 - **EC2 Placement Groups**
 - **Elastic Network Interface**
 
-カメラ補間はすべて線形です。各トピックへ短いリニアフォーカス → ホールド → 次の領域、最後に全景へ戻します。曲線カメラは使いません。
+カメラは領域間を直線でつなぎ、補間の **t だけ ease-in-out** します。曲線カメラは使いません。ズームは約 2.6 秒かけてゆっくり寄ります。
+
+画面は **1 画面 1 メッセージ**。試験用語は短いキャプションにだけ残します。
 
 ## 図解モーション分担
 
 - 配線は Remotion のパス。Figma の分岐 / 合流バーは使わない
 - アイコン SVG に文字を入れない。ラベル・キャプション・発光・タイミングは Remotion 側
-- 第一稿は装飾より、試験で切れる切れ目が読めることを優先
+- 通信と障害の広がりはパケットの流れで見せる
 
 ## Film 1 — Placement Groups
 
-1. Cluster — 同一 AZ 近傍。低レイテンシ HPC。HA には使わない
-2. Partition — ラック単位の論理パーティション。Hadoop / Kafka。7 partitions / AZ
-3. Spread — 別ハードウェア。少数の重要ノード。7 running / AZ
-4. 3-way 比較
-5. 試験点（AZ 認識 / 台数の直観 / ユースケース対応）
+1. Cluster — 近くに集める。速い。一緒に落ちる（通信 → ラック障害）
+2. Partition — ラックごとに分ける。片方の障害は他に広がらない
+3. Spread — 別々の機械へ。1 台落ちても他は生きる
+4. 比較 — 一緒に落ちる / 一部だけ / 1 台だけ
+5. 覚え方キャプション — Cluster は 1 AZ。Spread は 7 台/AZ
 
 ## Film 2 — ENI
 
-1. ENI = 仮想 NIC。IP / MAC / SG の入れ物
-2. Primary（eth0、外せない） vs Secondary（着脱可）
-3. 同一 AZ で Detach → Move → Attach。IP・MAC・SG が一緒に動く
-4. SG はインスタンスではなく ENI に付く
-5. 試験点（複数 ENI / ENI 移動 / SG の所属）
+1. ENI は仮想 NIC。通信は Instance → ENI → Subnet
+2. eth0 は外せない。eth1 は移せる（2 本のパケット経路）
+3. 同じ AZ なら ENI ごと移る
+4. 覚え方キャプション — SG は ENI に付く
 
 ## アイコン
 

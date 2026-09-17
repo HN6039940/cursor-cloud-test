@@ -1,5 +1,5 @@
 import type { CSSProperties, FC, ReactNode } from "react";
-import { Img, interpolate, staticFile } from "remotion";
+import { Easing, Img, interpolate, staticFile } from "remotion";
 
 export const FONT_FAMILY =
   '"WenQuanYi Micro Hei", "Droid Sans Fallback", "Hiragino Sans", "Noto Sans JP", sans-serif';
@@ -38,6 +38,22 @@ export const linearT = (frame: number, start: number, end: number) =>
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
+
+export const easeInOut = Easing.inOut(Easing.cubic);
+
+export const smoothT = (frame: number, start: number, end: number) =>
+  interpolate(frame, [start, end], [0, 1], {
+    easing: easeInOut,
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+
+export const loopT = (frame: number, start: number, period: number) => {
+  if (frame < start || period <= 0) {
+    return 0;
+  }
+  return ((frame - start) % period) / period;
+};
 
 export const cameraFocus = (target: Pt, peakScale: number): CameraView => ({
   scale: peakScale,
@@ -188,3 +204,28 @@ export const walkPolyline = (pts: Pt[], t: number): Pt => {
 };
 
 export const toD = (pts: Pt[]) => pts.map((pt, index) => `${index === 0 ? "M" : "L"}${pt.x} ${pt.y}`).join(" ");
+
+export const PacketDot: FC<{
+  x: number;
+  y: number;
+  color?: string;
+  opacity?: number;
+  size?: number;
+}> = ({ x, y, color = GLOW_COLOR, opacity = 1, size = 14 }) => (
+  <div
+    style={{
+      position: "absolute",
+      left: x,
+      top: y,
+      width: size,
+      height: size,
+      marginLeft: -size / 2,
+      marginTop: -size / 2,
+      borderRadius: 99,
+      background: color,
+      opacity,
+      boxShadow: `0 0 0 4px ${color}33, 0 0 16px ${color}`,
+      pointerEvents: "none",
+    }}
+  />
+);

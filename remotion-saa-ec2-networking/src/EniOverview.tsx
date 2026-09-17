@@ -2,7 +2,6 @@ import type { CSSProperties, FC, ReactNode } from "react";
 import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
 import {
   BG,
-  DANGER_COLOR,
   ENI_ACCENT,
   FONT_FAMILY,
   FPS,
@@ -14,6 +13,7 @@ import {
   IconImg,
   MUTED,
   PATH_COLOR,
+  PacketDot,
   SG_ACCENT,
   SUBNET_ACCENT,
   SUCCESS_COLOR,
@@ -27,8 +27,9 @@ import {
   WIDTH,
   cameraFocus,
   lerpCam,
-  linearT,
+  loopT,
   polylineLength,
+  smoothT,
   toD,
   walkPolyline,
   type CameraView,
@@ -38,32 +39,29 @@ import {
 const NODE_W = 280;
 const NODE_H = 250;
 const ENI_W = 340;
-const ENI_H = 300;
+const ENI_H = 280;
 
-const INST_A = { x: 160, y: 360 };
-const ENI_POS = { x: 790, y: 334 };
-const SUBNET_POS = { x: 1480, y: 360 };
-const SG_POS = { x: 820, y: 720 };
+const INST_A = { x: 160, y: 380 };
+const ENI_POS = { x: 790, y: 364 };
+const SUBNET_POS = { x: 1480, y: 380 };
+const SG_POS = { x: 820, y: 730 };
 
 const PRIM_Y = 1180;
 const MOVE_Y = 2080;
-const EXAM_Y = 3000;
 const BOARD_X = 70;
 const BOARD_W = 1780;
 const BOARD_H = 760;
 
-const PEAK_ENI = 1.62;
-const PEAK_SG = 1.62;
-const PEAK_BOARD = 1.05;
+const PEAK_ENI = 1.42;
+const PEAK_BOARD = 1.04;
 
-const INTRO = 90;
-const ZOOM = 30;
-const ENI_HOLD = 480;
-const PRIM_HOLD = 510;
-const MOVE_HOLD = 540;
-const SG_HOLD = 240;
-const EXAM_HOLD = 570;
-const OUTRO = 150;
+const INTRO = 120;
+const ZOOM = 78;
+const ENI_HOLD = 390;
+const PRIM_HOLD = 480;
+const MOVE_HOLD = 480;
+const REST = 36;
+const OUTRO = 132;
 
 const eniZoom = INTRO;
 const eniHold = eniZoom + ZOOM;
@@ -71,109 +69,67 @@ const primZoom = eniHold + ENI_HOLD;
 const primHold = primZoom + ZOOM;
 const moveZoom = primHold + PRIM_HOLD;
 const moveHold = moveZoom + ZOOM;
-const sgZoom = moveHold + MOVE_HOLD;
-const sgHoldAt = sgZoom + ZOOM;
-const examZoom = sgHoldAt + SG_HOLD;
-const examHold = examZoom + ZOOM;
-const outroZoom = examHold + EXAM_HOLD;
-export const DURATION = outroZoom + ZOOM + OUTRO;
+const overviewBack = moveHold + MOVE_HOLD;
+const overviewHold = overviewBack + ZOOM;
+const outroHold = overviewHold + REST;
+export const DURATION = outroHold + OUTRO;
 
 const ENI_CENTER: Pt = { x: ENI_POS.x + ENI_W / 2, y: ENI_POS.y + ENI_H / 2 };
-const SG_CENTER: Pt = { x: SG_POS.x + 280 / 2, y: SG_POS.y + 170 / 2 };
-const PRIM_CENTER: Pt = { x: WIDTH / 2, y: PRIM_Y + 360 };
-const MOVE_CENTER: Pt = { x: WIDTH / 2, y: MOVE_Y + 380 };
-const EXAM_CENTER: Pt = { x: WIDTH / 2, y: EXAM_Y + BOARD_H / 2 };
+const PRIM_CENTER: Pt = { x: WIDTH / 2, y: PRIM_Y + 390 };
+const MOVE_CENTER: Pt = { x: WIDTH / 2, y: MOVE_Y + 390 };
 
 const FOCUS_ENI = cameraFocus(ENI_CENTER, PEAK_ENI);
-const FOCUS_SG = cameraFocus(SG_CENTER, PEAK_SG);
 const FOCUS_PRIM = cameraFocus(PRIM_CENTER, PEAK_BOARD);
-const FOCUS_MOVE = cameraFocus(MOVE_CENTER, 1.08);
-const FOCUS_EXAM = cameraFocus(EXAM_CENTER, PEAK_BOARD);
+const FOCUS_MOVE = cameraFocus(MOVE_CENTER, 1.06);
 
 const cameraAt = (frame: number): CameraView => {
   if (frame < eniZoom) {
     return IDENTITY_CAM;
   }
   if (frame < eniHold) {
-    return lerpCam(IDENTITY_CAM, FOCUS_ENI, linearT(frame, eniZoom, eniHold));
+    return lerpCam(IDENTITY_CAM, FOCUS_ENI, smoothT(frame, eniZoom, eniHold));
   }
   if (frame < primZoom) {
     return FOCUS_ENI;
   }
   if (frame < primHold) {
-    return lerpCam(FOCUS_ENI, FOCUS_PRIM, linearT(frame, primZoom, primHold));
+    return lerpCam(FOCUS_ENI, FOCUS_PRIM, smoothT(frame, primZoom, primHold));
   }
   if (frame < moveZoom) {
     return FOCUS_PRIM;
   }
   if (frame < moveHold) {
-    return lerpCam(FOCUS_PRIM, FOCUS_MOVE, linearT(frame, moveZoom, moveHold));
+    return lerpCam(FOCUS_PRIM, FOCUS_MOVE, smoothT(frame, moveZoom, moveHold));
   }
-  if (frame < sgZoom) {
+  if (frame < overviewBack) {
     return FOCUS_MOVE;
   }
-  if (frame < sgHoldAt) {
-    return lerpCam(FOCUS_MOVE, FOCUS_SG, linearT(frame, sgZoom, sgHoldAt));
-  }
-  if (frame < examZoom) {
-    return FOCUS_SG;
-  }
-  if (frame < examHold) {
-    return lerpCam(FOCUS_SG, FOCUS_EXAM, linearT(frame, examZoom, examHold));
-  }
-  if (frame < outroZoom) {
-    return FOCUS_EXAM;
-  }
-  if (frame < outroZoom + ZOOM) {
-    return lerpCam(FOCUS_EXAM, IDENTITY_CAM, linearT(frame, outroZoom, outroZoom + ZOOM));
+  if (frame < overviewHold) {
+    return lerpCam(FOCUS_MOVE, IDENTITY_CAM, smoothT(frame, overviewBack, overviewHold));
   }
   return IDENTITY_CAM;
 };
 
+const moving = (frame: number) =>
+  (frame >= eniZoom && frame < eniHold) ||
+  (frame >= primZoom && frame < primHold) ||
+  (frame >= moveZoom && frame < moveHold) ||
+  (frame >= overviewBack && frame < overviewHold);
+
 const captionFor = (frame: number): { kicker: string; line: string } => {
-  if (frame < eniZoom) {
-    return { kicker: "SAA · VPC", line: "ENI — Elastic Network Interface。仮想 NIC" };
-  }
-  if (frame < eniHold + 150) {
-    return { kicker: "ENI とは", line: "インスタンスに付く仮想 NIC。IP / MAC / SG の入れ物" };
-  }
-  if (frame < eniHold + 310) {
-    return { kicker: "保持するもの", line: "プライマリ IPv4、セカンダリ IP、EIP、MAC、セキュリティグループ" };
+  if (frame < eniHold) {
+    return { kicker: "ENI", line: "ENI は仮想 NIC" };
   }
   if (frame < primZoom) {
-    return { kicker: "関係", line: "Instance ↔ ENI ↔ Subnet。SG は ENI に付く" };
-  }
-  if (frame < primHold + 180) {
-    return { kicker: "Primary", line: "eth0 はライフタイム固定。デタッチできない" };
-  }
-  if (frame < primHold + 360) {
-    return { kicker: "Secondary", line: "eth1 以降は着脱できる。同じ AZ なら別インスタンスへ移せる" };
+    return { kicker: "通り道", line: "通信は Instance → ENI → Subnet" };
   }
   if (frame < moveZoom) {
-    return { kicker: "複数 ENI", line: "管理面とデータ面の分離、複数 IP、アプライアンス用途" };
+    return { kicker: "2 本の NIC", line: "eth0 は外せない。eth1 は移せる" };
   }
-  if (frame < moveHold + 180) {
-    return { kicker: "Detach", line: "セカンダリ ENI を外す。IP / MAC / SG は ENI 側に残る" };
+  if (frame < overviewBack) {
+    return { kicker: "移動", line: "同じ AZ なら、ENI ごと移る" };
   }
-  if (frame < moveHold + 380) {
-    return { kicker: "Move", line: "同じ AZ の別インスタンスへアタッチ。身元はそのまま移動" };
-  }
-  if (frame < sgZoom) {
-    return { kicker: "移動後", line: "新しいインスタンスが、同じ IP・MAC・SG を引き継ぐ" };
-  }
-  if (frame < examZoom) {
-    return { kicker: "SG の所属", line: "セキュリティグループはインスタンスではなく ENI に付く" };
-  }
-  if (frame < examHold + 180) {
-    return { kicker: "試験ポイント", line: "複数 ENI = 複数の IP と経路。デュアルホームの定番" };
-  }
-  if (frame < examHold + 360) {
-    return { kicker: "試験ポイント", line: "ENI 移動で IP・MAC・SG が一緒に動く。AZ をまたげない" };
-  }
-  if (frame < outroZoom) {
-    return { kicker: "試験ポイント", line: "SG の対象は ENI。問題文の「インスタンスに SG」は ENI 経由" };
-  }
-  return { kicker: "SAA · まとめ", line: "ENI は仮想 NIC。住所（IP）と鍵（SG）の入れ物を着脱する" };
+  return { kicker: "覚え方", line: "SG は ENI に付く" };
 };
 
 const NodeCard: FC<{
@@ -200,9 +156,7 @@ const NodeCard: FC<{
       borderRadius: 22,
       background: "linear-gradient(180deg, #1A2438 0%, #121A2B 100%)",
       border: focused ? `2px solid ${accent}` : "1.5px solid rgba(255,255,255,0.08)",
-      boxShadow: focused
-        ? `0 0 0 5px ${accent}33, 0 0 28px ${accent}55`
-        : "0 16px 36px rgba(0,0,0,0.28)",
+      boxShadow: focused ? `0 0 0 5px ${accent}33, 0 0 28px ${accent}55` : "0 16px 36px rgba(0,0,0,0.28)",
       opacity: dim,
       overflow: "hidden",
       padding: "0 22px 18px",
@@ -241,14 +195,22 @@ const PATH_ENI_SG: Pt[] = [
   { x: ENI_POS.x + ENI_W / 2, y: ENI_POS.y + ENI_H },
   { x: SG_POS.x + 140, y: SG_POS.y },
 ];
+const PATH_FULL: Pt[] = [
+  PATH_INST_ENI[0],
+  PATH_INST_ENI[1],
+  { x: ENI_POS.x + ENI_W / 2, y: ENI_POS.y + ENI_H / 2 },
+  PATH_ENI_SUBNET[0],
+  PATH_ENI_SUBNET[1],
+];
+const PATH_RETURN: Pt[] = [...PATH_FULL].reverse();
 
 const OverviewPaths: FC<{ progress: number; glow: boolean }> = ({ progress, glow }) => {
   const paths = [PATH_INST_ENI, PATH_ENI_SUBNET, PATH_ENI_SG];
   return (
     <svg
-      viewBox={`0 0 ${WIDTH} ${HEIGHT + 40}`}
+      viewBox={`0 0 ${WIDTH} ${HEIGHT + 80}`}
       width={WIDTH}
-      height={HEIGHT + 40}
+      height={HEIGHT + 80}
       style={{ position: "absolute", left: 0, top: 0, overflow: "visible" }}
     >
       {paths.map((pts, index) => {
@@ -265,7 +227,6 @@ const OverviewPaths: FC<{ progress: number; glow: boolean }> = ({ progress, glow
             strokeDasharray={len}
             strokeDashoffset={len * (1 - progress)}
             opacity={0.9}
-            style={{ filter: glow ? `drop-shadow(0 0 8px ${GLOW_COLOR})` : undefined }}
           />
         );
       })}
@@ -273,45 +234,26 @@ const OverviewPaths: FC<{ progress: number; glow: boolean }> = ({ progress, glow
   );
 };
 
-const ENI_CHIPS = [
-  { icon: "icons/radio.svg", label: "10.0.1.24", hint: "Primary IPv4" },
-  { icon: "icons/hash.svg", label: "02:8f:…:a1", hint: "MAC" },
-  { icon: "icons/shield.svg", label: "sg-web", hint: "Security Group" },
-  { icon: "icons/globe.svg", label: "EIP 可", hint: "Elastic IP" },
-] as const;
-
-const EniChips: FC<{ frame: number }> = ({ frame }) => (
-  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-    {ENI_CHIPS.map((chip, index) => (
-      <div
-        key={chip.hint}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          padding: "7px 10px",
-          borderRadius: 12,
-          background: "#101828",
-          border: `1px solid ${ENI_ACCENT}44`,
-          opacity: Math.max(
-            linearT(frame, 36 + index * 10, 64 + index * 10),
-            linearT(frame, eniHold + 20 + index * 28, eniHold + 48 + index * 28),
-          ),
-          minWidth: 140,
-        }}
-      >
-        <IconImg file={chip.icon} size={18} />
-        <div>
-          <Txt style={{ fontSize: 11, color: MUTED, letterSpacing: "0.08em" }}>{chip.hint}</Txt>
-          <Txt style={{ fontSize: 15, color: TEXT_SOFT, fontWeight: 700 }}>{chip.label}</Txt>
-        </div>
-      </div>
-    ))}
-  </div>
-);
-
 const PrimaryScene: FC<{ frame: number }> = ({ frame }) => {
-  const secondary = linearT(frame, primHold + 160, primHold + 220);
+  const eth1 = smoothT(frame, primHold + 80, primHold + 150);
+  const t0 = loopT(frame, primHold + 40, 86);
+  const t1 = loopT(frame, primHold + 160, 94);
+  const path0: Pt[] = [
+    { x: 360, y: 250 },
+    { x: 560, y: 250 },
+    { x: 820, y: 250 },
+    { x: 1180, y: 250 },
+    { x: 1420, y: 250 },
+  ];
+  const path1: Pt[] = [
+    { x: 360, y: 470 },
+    { x: 560, y: 470 },
+    { x: 820, y: 470 },
+    { x: 1180, y: 470 },
+    { x: 1420, y: 470 },
+  ];
+  const p0 = walkPolyline(path0, t0);
+  const p1 = walkPolyline(path1, t1);
   return (
     <div
       style={{
@@ -327,126 +269,78 @@ const PrimaryScene: FC<{ frame: number }> = ({ frame }) => {
         boxSizing: "border-box",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 22 }}>
-        <IconBadge file="icons/lock.svg" size={44} accent={WARN_COLOR} />
-        <div>
-          <Txt style={{ fontSize: 14, letterSpacing: "0.16em", color: MUTED, fontWeight: 600 }}>ATTACH MODEL</Txt>
-          <Txt style={{ fontSize: 28, fontWeight: 700, color: TEXT }}>Primary vs Secondary</Txt>
-        </div>
-      </div>
-      <div style={{ display: "flex", gap: 28, alignItems: "stretch" }}>
-        <div
-          style={{
-            width: 420,
-            borderRadius: 20,
-            background: "#101828",
-            border: `1.5px solid ${INSTANCE_ACCENT}55`,
-            padding: 22,
-            boxSizing: "border-box",
-          }}
+      <Txt style={{ fontSize: 14, letterSpacing: "0.16em", color: MUTED, fontWeight: 600 }}>2 本の通り道</Txt>
+      <Txt style={{ fontSize: 28, fontWeight: 700, color: TEXT, marginBottom: 18 }}>どの NIC を通るか</Txt>
+      <div style={{ position: "relative", height: 600 }}>
+        <svg width={BOARD_W} height={600} style={{ position: "absolute", inset: 0, overflow: "visible" }}>
+          <path
+            d={toD(path0)}
+            fill="none"
+            stroke={WARN_COLOR}
+            strokeWidth={4}
+            strokeLinecap="round"
+            opacity={0.55}
+          />
+          <path
+            d={toD(path1)}
+            fill="none"
+            stroke={ENI_ACCENT}
+            strokeWidth={4}
+            strokeLinecap="round"
+            opacity={0.2 + eth1 * 0.45}
+          />
+        </svg>
+        <NodeCard x={80} y={220} w={260} h={280} accent={INSTANCE_ACCENT} icon="icons/server.svg" kicker="EC2" title="Instance">
+          <Tag label="eth0 + eth1" accent={INSTANCE_ACCENT} />
+        </NodeCard>
+        <NodeCard x={560} y={120} w={260} h={200} accent={WARN_COLOR} icon="icons/lock.svg" kicker="eth0" title="Primary" focused>
+          <Txt style={{ fontSize: 16, color: TEXT_SOFT }}>外せない</Txt>
+        </NodeCard>
+        <NodeCard
+          x={560}
+          y={360}
+          w={260}
+          h={200}
+          accent={ENI_ACCENT}
+          icon="icons/unplug.svg"
+          kicker="eth1"
+          title="Secondary"
+          dim={0.35 + eth1 * 0.65}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <IconImg file="icons/server.svg" size={36} />
-            <Txt style={{ fontSize: 22, fontWeight: 700, color: TEXT }}>Instance A</Txt>
-          </div>
-          <div
-            style={{
-              marginTop: 18,
-              borderRadius: 14,
-              border: `1.5px solid ${WARN_COLOR}`,
-              background: `${WARN_COLOR}14`,
-              padding: 14,
-              opacity: linearT(frame, primHold + 12, primHold + 50),
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <IconImg file="icons/lock.svg" size={20} />
-              <Txt style={{ fontSize: 18, fontWeight: 700, color: WARN_COLOR }}>eth0 · Primary ENI</Txt>
-            </div>
-            <Txt style={{ marginTop: 6, fontSize: 15, color: TEXT_SOFT }}>ライフタイム固定 · デタッチ不可</Txt>
-          </div>
-          <div
-            style={{
-              marginTop: 12,
-              borderRadius: 14,
-              border: `1.5px dashed ${ENI_ACCENT}`,
-              background: `${ENI_ACCENT}14`,
-              padding: 14,
-              opacity: secondary,
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <IconImg file="icons/unplug.svg" size={20} />
-              <Txt style={{ fontSize: 18, fontWeight: 700, color: ENI_ACCENT }}>eth1 · Secondary ENI</Txt>
-            </div>
-            <Txt style={{ marginTop: 6, fontSize: 15, color: TEXT_SOFT }}>着脱可 · 同じ AZ なら移動可</Txt>
-          </div>
-        </div>
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 14, justifyContent: "center" }}>
-          <Txt style={{ fontSize: 22, fontWeight: 700, color: TEXT }}>試験での見方</Txt>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-            <Tag label="eth0 は外せない" accent={WARN_COLOR} />
-            <Tag label="secondary はホットアタッチ" accent={ENI_ACCENT} />
-            <Tag label="同一 AZ のみ移動" accent={SUBNET_ACCENT} />
-          </div>
-          <Txt style={{ fontSize: 18, lineHeight: 1.55, color: TEXT_SOFT, fontWeight: 500 }}>
-            複数 ENI は「NIC を増やす」こと。追加のプライベート IP、管理用とデータ用の分離、アプライアンスの
-            複数セグメント接続に使う。
-          </Txt>
-          <div
-            style={{
-              marginTop: 8,
-              display: "flex",
-              gap: 12,
-              opacity: secondary,
-            }}
-          >
-            <div
-              style={{
-                flex: 1,
-                borderRadius: 14,
-                background: "#101828",
-                border: `1px solid ${WARN_COLOR}55`,
-                padding: 14,
-              }}
-            >
-              <Txt style={{ fontSize: 13, color: WARN_COLOR, fontWeight: 700, letterSpacing: "0.1em" }}>eth0</Txt>
-              <Txt style={{ marginTop: 6, fontSize: 16, color: TEXT, fontWeight: 700 }}>mgmt subnet</Txt>
-              <Txt style={{ marginTop: 4, fontSize: 14, color: TEXT_SOFT }}>管理面 · SG-mgmt</Txt>
-            </div>
-            <div
-              style={{
-                flex: 1,
-                borderRadius: 14,
-                background: "#101828",
-                border: `1px solid ${ENI_ACCENT}55`,
-                padding: 14,
-              }}
-            >
-              <Txt style={{ fontSize: 13, color: ENI_ACCENT, fontWeight: 700, letterSpacing: "0.1em" }}>eth1</Txt>
-              <Txt style={{ marginTop: 6, fontSize: 16, color: TEXT, fontWeight: 700 }}>data subnet</Txt>
-              <Txt style={{ marginTop: 4, fontSize: 14, color: TEXT_SOFT }}>データ面 · SG-data</Txt>
-            </div>
-          </div>
-        </div>
+          <Txt style={{ fontSize: 16, color: TEXT_SOFT }}>移せる</Txt>
+        </NodeCard>
+        <NodeCard x={1180} y={120} w={280} h={200} accent={SUBNET_ACCENT} icon="icons/globe.svg" kicker="subnet" title="管理">
+          <Txt style={{ fontSize: 16, color: TEXT_SOFT }}>eth0 の先</Txt>
+        </NodeCard>
+        <NodeCard
+          x={1180}
+          y={360}
+          w={280}
+          h={200}
+          accent={SUBNET_ACCENT}
+          icon="icons/globe.svg"
+          kicker="subnet"
+          title="データ"
+          dim={0.35 + eth1 * 0.65}
+        >
+          <Txt style={{ fontSize: 16, color: TEXT_SOFT }}>eth1 の先</Txt>
+        </NodeCard>
+        <PacketDot x={p0.x} y={p0.y} color={WARN_COLOR} />
+        <PacketDot x={p1.x} y={p1.y} color={ENI_ACCENT} opacity={eth1} />
       </div>
     </div>
   );
 };
 
-const MOVE_A = { x: 220, y: MOVE_Y + 220 };
-const MOVE_B = { x: 1280, y: MOVE_Y + 220 };
-const MOVE_ENI_FROM = { x: 560, y: MOVE_Y + 250 };
-const MOVE_ENI_TO = { x: 980, y: MOVE_Y + 250 };
-const MOVE_PATH: Pt[] = [
-  { x: MOVE_ENI_FROM.x + 150, y: MOVE_ENI_FROM.y + 80 },
-  { x: MOVE_ENI_TO.x + 150, y: MOVE_ENI_TO.y + 80 },
-];
+const MOVE_A = { x: 180, y: MOVE_Y + 200 };
+const MOVE_B = { x: 1240, y: MOVE_Y + 200 };
+const MOVE_ENI_FROM = { x: 520, y: MOVE_Y + 250 };
+const MOVE_ENI_TO = { x: 940, y: MOVE_Y + 250 };
 
 const MoveScene: FC<{ frame: number }> = ({ frame }) => {
-  const detach = linearT(frame, moveHold + 40, moveHold + 110);
-  const travel = linearT(frame, moveHold + 140, moveHold + 300);
-  const attach = linearT(frame, moveHold + 310, moveHold + 370);
+  const detach = smoothT(frame, moveHold + 36, moveHold + 120);
+  const travel = smoothT(frame, moveHold + 140, moveHold + 320);
+  const attach = smoothT(frame, moveHold + 330, moveHold + 400);
   const eniPos = walkPolyline(
     [
       { x: MOVE_ENI_FROM.x, y: MOVE_ENI_FROM.y },
@@ -454,7 +348,18 @@ const MoveScene: FC<{ frame: number }> = ({ frame }) => {
     ],
     travel,
   );
-  const packet = walkPolyline(MOVE_PATH, travel);
+  const beforePath: Pt[] = [
+    { x: MOVE_A.x + 150 - BOARD_X, y: MOVE_A.y + 80 - MOVE_Y - 28 },
+    { x: MOVE_ENI_FROM.x + 150 - BOARD_X, y: MOVE_ENI_FROM.y + 80 - MOVE_Y - 28 },
+  ];
+  const afterPath: Pt[] = [
+    { x: MOVE_B.x + 150 - BOARD_X, y: MOVE_B.y + 80 - MOVE_Y - 28 },
+    { x: MOVE_ENI_TO.x + 150 - BOARD_X, y: MOVE_ENI_TO.y + 80 - MOVE_Y - 28 },
+  ];
+  const tBefore = loopT(frame, moveHold, 70);
+  const tAfter = loopT(frame, moveHold + 400, 70);
+  const pktBefore = walkPolyline(beforePath, tBefore);
+  const pktAfter = walkPolyline(afterPath, tAfter);
   return (
     <div
       style={{
@@ -470,13 +375,8 @@ const MoveScene: FC<{ frame: number }> = ({ frame }) => {
         boxSizing: "border-box",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
-        <IconBadge file="icons/move.svg" size={44} accent={ENI_ACCENT} />
-        <div>
-          <Txt style={{ fontSize: 14, letterSpacing: "0.16em", color: MUTED, fontWeight: 600 }}>SAME AZ</Txt>
-          <Txt style={{ fontSize: 28, fontWeight: 700, color: TEXT }}>Detach → Move → Attach</Txt>
-        </div>
-      </div>
+      <Txt style={{ fontSize: 14, letterSpacing: "0.16em", color: MUTED, fontWeight: 600 }}>同じ AZ</Txt>
+      <Txt style={{ fontSize: 28, fontWeight: 700, color: TEXT, marginBottom: 16 }}>ENI ごと移す</Txt>
       <div
         style={{
           position: "relative",
@@ -499,7 +399,7 @@ const MoveScene: FC<{ frame: number }> = ({ frame }) => {
             letterSpacing: "0.08em",
           }}
         >
-          AZ · またげない
+          AZ
         </Txt>
         <NodeCard
           x={MOVE_A.x - BOARD_X}
@@ -508,11 +408,10 @@ const MoveScene: FC<{ frame: number }> = ({ frame }) => {
           h={230}
           accent={INSTANCE_ACCENT}
           icon="icons/server.svg"
-          kicker="SOURCE"
+          kicker="FROM"
           title="Instance A"
-          dim={1 - detach * 0.15}
         >
-          <Tag label={detach > 0.8 ? "eth0 のみ" : "eth0 + eth1"} accent={INSTANCE_ACCENT} />
+          <Tag label={detach > 0.8 ? "eth0 だけ" : "eth0 + eth1"} accent={INSTANCE_ACCENT} />
         </NodeCard>
         <NodeCard
           x={MOVE_B.x - BOARD_X}
@@ -521,17 +420,13 @@ const MoveScene: FC<{ frame: number }> = ({ frame }) => {
           h={230}
           accent={SUCCESS_COLOR}
           icon="icons/server.svg"
-          kicker="TARGET"
+          kicker="TO"
           title="Instance B"
           focused={attach > 0.6}
         >
-          <Tag label={attach > 0.6 ? "ENI を継承" : "待ち"} accent={attach > 0.6 ? SUCCESS_COLOR : MUTED} />
+          <Tag label={attach > 0.6 ? "ENI を受け取った" : "待ち"} accent={attach > 0.6 ? SUCCESS_COLOR : MUTED} />
         </NodeCard>
-        <svg
-          width={BOARD_W}
-          height={560}
-          style={{ position: "absolute", inset: 0, overflow: "visible" }}
-        >
+        <svg width={BOARD_W} height={560} style={{ position: "absolute", inset: 0, overflow: "visible" }}>
           <path
             d={toD([
               { x: MOVE_ENI_FROM.x - BOARD_X + 150, y: MOVE_ENI_FROM.y - MOVE_Y - 28 + 80 },
@@ -542,7 +437,7 @@ const MoveScene: FC<{ frame: number }> = ({ frame }) => {
             strokeWidth={4}
             strokeLinecap="round"
             strokeDasharray="10 10"
-            opacity={0.5 + travel * 0.5}
+            opacity={0.45 + travel * 0.4}
           />
         </svg>
         <div
@@ -567,151 +462,37 @@ const MoveScene: FC<{ frame: number }> = ({ frame }) => {
           </div>
           <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
             <Tag label="IP" accent={ENI_ACCENT} />
-            <Tag label="MAC" accent={ENI_ACCENT} />
             <Tag label="SG" accent={SG_ACCENT} />
           </div>
         </div>
-        <div
-          style={{
-            position: "absolute",
-            left: packet.x - BOARD_X,
-            top: packet.y - MOVE_Y - 28,
-            width: 16,
-            height: 16,
-            marginLeft: -8,
-            marginTop: -8,
-            borderRadius: 99,
-            background: GLOW_COLOR,
-            boxShadow: `0 0 18px ${GLOW_COLOR}`,
-            opacity: travel > 0 && travel < 1 ? 1 : 0,
-          }}
-        />
+        {detach < 0.35 ? <PacketDot x={pktBefore.x} y={pktBefore.y} color={GLOW_COLOR} /> : null}
+        {attach > 0.6 ? <PacketDot x={pktAfter.x} y={pktAfter.y} color={SUCCESS_COLOR} /> : null}
       </div>
     </div>
   );
 };
 
-const EXAM_CARDS = [
-  {
-    icon: "icons/cable.svg",
-    accent: ENI_ACCENT,
-    kicker: "Multiple ENIs",
-    title: "NIC を増やす",
-    body: "追加 ENI は追加のプライベート IP と経路。管理用とデータ用のデュアルホームが定番。",
-  },
-  {
-    icon: "icons/move.svg",
-    accent: SUCCESS_COLOR,
-    kicker: "ENI move",
-    title: "入れ物ごと移動",
-    body: "同じ AZ ならセカンダリ ENI を移せる。IP・MAC・SG が一緒に動く。AZ またぎは不可。",
-  },
-  {
-    icon: "icons/shield.svg",
-    accent: SG_ACCENT,
-    kicker: "SG on ENI",
-    title: "SG の所属先",
-    body: "セキュリティグループはインスタンスではなく ENI に付く。ENI を移せば SG も移る。",
-  },
-] as const;
-
-const ExamBoard: FC<{ frame: number }> = ({ frame }) => (
-  <div
-    style={{
-      position: "absolute",
-      left: BOARD_X,
-      top: EXAM_Y,
-      width: BOARD_W,
-      height: BOARD_H,
-      borderRadius: 24,
-      background: "linear-gradient(180deg, #1A2438 0%, #121A2B 100%)",
-      border: "1.5px solid rgba(255,255,255,0.1)",
-      padding: "28px 32px",
-      boxSizing: "border-box",
-    }}
-  >
-    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 22 }}>
-      <IconBadge file="icons/check.svg" size={44} accent={SUCCESS_COLOR} />
-      <div>
-        <Txt style={{ fontSize: 14, letterSpacing: "0.16em", color: MUTED, fontWeight: 600 }}>SAA EXAM</Txt>
-        <Txt style={{ fontSize: 28, fontWeight: 700, color: TEXT }}>試験で問われやすい 3 点</Txt>
-      </div>
-    </div>
-    <div style={{ display: "flex", gap: 18 }}>
-      {EXAM_CARDS.map((card, index) => (
-        <div
-          key={card.title}
-          style={{
-            flex: 1,
-            minHeight: 480,
-            borderRadius: 20,
-            background: "linear-gradient(180deg, #182236 0%, #121A2B 100%)",
-            border: `1.5px solid ${card.accent}55`,
-            boxShadow: `0 0 22px ${card.accent}22`,
-            padding: 24,
-            boxSizing: "border-box",
-            opacity: linearT(frame, examHold + 16 + index * 36, examHold + 50 + index * 36),
-          }}
-        >
-          <IconBadge file={card.icon} size={56} accent={card.accent} />
-          <Txt
-            style={{
-              marginTop: 18,
-              fontSize: 14,
-              letterSpacing: "0.16em",
-              color: card.accent,
-              fontWeight: 700,
-            }}
-          >
-            {card.kicker}
-          </Txt>
-          <Txt style={{ marginTop: 8, fontSize: 26, fontWeight: 700, color: TEXT }}>{card.title}</Txt>
-          <Txt style={{ marginTop: 16, fontSize: 20, lineHeight: 1.55, color: TEXT_SOFT, fontWeight: 500 }}>
-            {card.body}
-          </Txt>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 22 }}>
-            {index === 0 ? (
-              <>
-                <Tag label="デュアルホーム" accent={ENI_ACCENT} />
-                <Tag label="複数プライベート IP" accent={INSTANCE_ACCENT} />
-              </>
-            ) : null}
-            {index === 1 ? (
-              <>
-                <Tag label="同一 AZ のみ" accent={SUBNET_ACCENT} />
-                <Tag label="IP + MAC + SG" accent={SUCCESS_COLOR} />
-              </>
-            ) : null}
-            {index === 2 ? (
-              <>
-                <Tag label="SG → ENI" accent={SG_ACCENT} />
-                <Tag label="インスタンスではない" accent={DANGER_COLOR} />
-              </>
-            ) : null}
-          </div>
-        </div>
-      ))}
-    </div>
-  </div>
-);
-
 export const EniOverview: FC = () => {
   const frame = useCurrentFrame();
   const cam = cameraAt(frame);
-  const zoomed = cam.scale > 1.04;
+  const zoomed = cam.scale > 1.02;
   const titleOpacity =
-    interpolate(frame, [0, 16], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }) *
+    interpolate(frame, [0, 22], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }) *
     (zoomed ? 0 : 1);
-  const appear = linearT(frame, 8, 44);
-  const pathDraw = linearT(frame, 24, 80);
+  const appear = smoothT(frame, 8, 52);
+  const pathDraw = smoothT(frame, 20, 90);
   const caption = captionFor(frame);
-  const captionOpacity = interpolate(frame, [0, 12, DURATION - 18, DURATION], [0, 1, 1, 1], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
+  const captionOpacity =
+    interpolate(frame, [0, 16, DURATION - 20, DURATION], [0, 1, 1, 1], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp",
+    }) * (moving(frame) ? 0.55 : 1);
   const focusEni = frame >= eniHold && frame < primZoom;
-  const focusSg = frame >= sgHoldAt && frame < examZoom;
-  const glowPaths = focusEni || focusSg;
+  const onOverview = frame < primZoom || frame >= overviewHold;
+  const tGo = loopT(frame, 48, 96);
+  const tBack = loopT(frame, 96, 96);
+  const go = walkPolyline(PATH_FULL, tGo);
+  const back = walkPolyline(PATH_RETURN, tBack);
 
   return (
     <AbsoluteFill style={{ background: BG, fontFamily: FONT_FAMILY, overflow: "hidden" }}>
@@ -724,7 +505,7 @@ export const EniOverview: FC = () => {
           transformOrigin: "0 0",
         }}
       >
-        <OverviewPaths progress={pathDraw} glow={glowPaths} />
+        <OverviewPaths progress={pathDraw} glow={focusEni} />
         <NodeCard
           x={INST_A.x}
           y={INST_A.y}
@@ -734,10 +515,9 @@ export const EniOverview: FC = () => {
           icon="icons/server.svg"
           kicker="EC2"
           title="Instance"
-          dim={appear * (focusEni || focusSg ? 0.45 : 1)}
+          dim={appear * (focusEni ? 0.5 : 1)}
         >
-          <Tag label="eth0 +" accent={INSTANCE_ACCENT} />
-          <Txt style={{ marginTop: 10, fontSize: 15, color: TEXT_SOFT }}>ENI を挿す箱</Txt>
+          <Tag label="eth0" accent={INSTANCE_ACCENT} />
         </NodeCard>
         <NodeCard
           x={ENI_POS.x}
@@ -746,12 +526,15 @@ export const EniOverview: FC = () => {
           h={ENI_H}
           accent={ENI_ACCENT}
           icon="icons/cable.svg"
-          kicker="VIRTUAL NIC"
+          kicker="仮想 NIC"
           title="ENI"
           focused={focusEni}
-          dim={appear * (focusSg ? 0.28 : 1)}
+          dim={appear}
         >
-          <EniChips frame={frame} />
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <Tag label="IP" accent={ENI_ACCENT} />
+            <Tag label="SG" accent={SG_ACCENT} />
+          </div>
         </NodeCard>
         <NodeCard
           x={SUBNET_POS.x}
@@ -762,28 +545,27 @@ export const EniOverview: FC = () => {
           icon="icons/globe.svg"
           kicker="VPC"
           title="Subnet"
-          dim={appear * (focusEni || focusSg ? 0.45 : 1)}
+          dim={appear * (focusEni ? 0.5 : 1)}
         >
-          <Tag label="10.0.1.0/24" accent={SUBNET_ACCENT} />
-          <Txt style={{ marginTop: 10, fontSize: 15, color: TEXT_SOFT }}>ENI はサブネットに属する</Txt>
+          <Tag label="行き先" accent={SUBNET_ACCENT} />
         </NodeCard>
         <NodeCard
           x={SG_POS.x}
           y={SG_POS.y}
           w={280}
-          h={170}
+          h={150}
           accent={SG_ACCENT}
           icon="icons/shield.svg"
-          kicker="ATTACHED TO ENI"
-          title="Security Group"
-          focused={focusSg}
-          dim={appear * (focusEni ? 0.12 : 1)}
+          kicker="付く先"
+          title="SG"
+          dim={appear * (focusEni ? 0.18 : 1)}
         >
-          <Tag label="インスタンスではない" accent={focusSg ? SG_ACCENT : DANGER_COLOR} />
+          <Tag label="ENI に付く" accent={SG_ACCENT} />
         </NodeCard>
+        {onOverview && pathDraw > 0.25 ? <PacketDot x={go.x} y={go.y} color={GLOW_COLOR} /> : null}
+        {onOverview && pathDraw > 0.25 ? <PacketDot x={back.x} y={back.y} color={ENI_ACCENT} size={12} opacity={0.85} /> : null}
         <PrimaryScene frame={frame} />
         <MoveScene frame={frame} />
-        <ExamBoard frame={frame} />
       </div>
 
       <Txt
@@ -816,7 +598,7 @@ export const EniOverview: FC = () => {
           opacity: titleOpacity,
         }}
       >
-        仮想 NIC — IP / MAC / SG の入れ物を着脱する
+        仮想 NIC
       </Txt>
       <ScreenCaption kicker={caption.kicker} line={caption.line} opacity={captionOpacity} />
     </AbsoluteFill>

@@ -12,19 +12,21 @@ import {
   IconImg,
   MUTED,
   PARTITION_ACCENT,
+  PacketDot,
   ScreenCaption,
   SPREAD_ACCENT,
   SUCCESS_COLOR,
   TEXT,
   TEXT_SOFT,
-  Tag,
   Txt,
   Vignette,
-  WARN_COLOR,
   WIDTH,
   cameraFocus,
   lerpCam,
-  linearT,
+  loopT,
+  smoothT,
+  toD,
+  walkPolyline,
   type CameraView,
   type Pt,
 } from "./theme";
@@ -36,11 +38,10 @@ const ROW_W = CARD_W * 3 + GAP * 2;
 const ROW_LEFT = (WIDTH - ROW_W) / 2;
 const CARD_Y = 168;
 
-const BOARD_X = 70;
-const BOARD_W = 1780;
-const BOARD_H = 740;
-const CMP_Y = 1180;
-const EXAM_Y = 2060;
+const BOARD_X = 80;
+const BOARD_W = 1760;
+const BOARD_H = 700;
+const CMP_Y = 1120;
 
 type TypeId = "cluster" | "partition" | "spread";
 
@@ -51,7 +52,7 @@ const TYPES: Record<TypeId, { x: number; y: number; accent: string; icon: string
     accent: CLUSTER_ACCENT,
     icon: "icons/zap.svg",
     en: "Cluster",
-    jp: "性能・近傍配置",
+    jp: "近くに集める",
   },
   partition: {
     x: ROW_LEFT + CARD_W + GAP,
@@ -59,7 +60,7 @@ const TYPES: Record<TypeId, { x: number; y: number; accent: string; icon: string
     accent: PARTITION_ACCENT,
     icon: "icons/layers.svg",
     en: "Partition",
-    jp: "ラック隔離",
+    jp: "ラックごとに分ける",
   },
   spread: {
     x: ROW_LEFT + (CARD_W + GAP) * 2,
@@ -67,28 +68,26 @@ const TYPES: Record<TypeId, { x: number; y: number; accent: string; icon: string
     accent: SPREAD_ACCENT,
     icon: "icons/spread.svg",
     en: "Spread",
-    jp: "ハード隔離",
+    jp: "別々の機械へ",
   },
 };
 
 const centerOf = (id: TypeId): Pt => ({
   x: TYPES[id].x + CARD_W / 2,
-  y: TYPES[id].y + CARD_H / 2,
+  y: TYPES[id].y + CARD_H / 2 + 20,
 });
 
 const CMP_CENTER: Pt = { x: BOARD_X + BOARD_W / 2, y: CMP_Y + BOARD_H / 2 };
-const EXAM_CENTER: Pt = { x: BOARD_X + BOARD_W / 2, y: EXAM_Y + BOARD_H / 2 };
 
-const PEAK_TYPE = 1.52;
-const PEAK_BOARD = 1.05;
+const PEAK_TYPE = 1.36;
+const PEAK_BOARD = 1.06;
 
-const INTRO = 90;
-const ZOOM = 30;
-const TYPE_HOLD = 510;
-const OVERVIEW_HOLD = 48;
-const CMP_HOLD = 570;
-const EXAM_HOLD = 630;
-const OUTRO = 150;
+const INTRO = 120;
+const ZOOM = 78;
+const TYPE_HOLD = 450;
+const REST = 42;
+const CMP_HOLD = 330;
+const OUTRO = 120;
 
 const clusterZoom = INTRO;
 const clusterHold = clusterZoom + ZOOM;
@@ -98,64 +97,63 @@ const spreadZoom = partitionHold + TYPE_HOLD;
 const spreadHold = spreadZoom + ZOOM;
 const overviewZoom = spreadHold + TYPE_HOLD;
 const overviewHold = overviewZoom + ZOOM;
-const cmpZoom = overviewHold + OVERVIEW_HOLD;
+const cmpZoom = overviewHold + REST;
 const cmpHold = cmpZoom + ZOOM;
-const examZoom = cmpHold + CMP_HOLD;
-const examHold = examZoom + ZOOM;
-const outroZoom = examHold + EXAM_HOLD;
+const outroZoom = cmpHold + CMP_HOLD;
 export const DURATION = outroZoom + ZOOM + OUTRO;
 
 const FOCUS_CLUSTER = cameraFocus(centerOf("cluster"), PEAK_TYPE);
 const FOCUS_PARTITION = cameraFocus(centerOf("partition"), PEAK_TYPE);
 const FOCUS_SPREAD = cameraFocus(centerOf("spread"), PEAK_TYPE);
 const FOCUS_CMP = cameraFocus(CMP_CENTER, PEAK_BOARD);
-const FOCUS_EXAM = cameraFocus(EXAM_CENTER, PEAK_BOARD);
 
 const cameraAt = (frame: number): CameraView => {
   if (frame < clusterZoom) {
     return IDENTITY_CAM;
   }
   if (frame < clusterHold) {
-    return lerpCam(IDENTITY_CAM, FOCUS_CLUSTER, linearT(frame, clusterZoom, clusterHold));
+    return lerpCam(IDENTITY_CAM, FOCUS_CLUSTER, smoothT(frame, clusterZoom, clusterHold));
   }
   if (frame < partitionZoom) {
     return FOCUS_CLUSTER;
   }
   if (frame < partitionHold) {
-    return lerpCam(FOCUS_CLUSTER, FOCUS_PARTITION, linearT(frame, partitionZoom, partitionHold));
+    return lerpCam(FOCUS_CLUSTER, FOCUS_PARTITION, smoothT(frame, partitionZoom, partitionHold));
   }
   if (frame < spreadZoom) {
     return FOCUS_PARTITION;
   }
   if (frame < spreadHold) {
-    return lerpCam(FOCUS_PARTITION, FOCUS_SPREAD, linearT(frame, spreadZoom, spreadHold));
+    return lerpCam(FOCUS_PARTITION, FOCUS_SPREAD, smoothT(frame, spreadZoom, spreadHold));
   }
   if (frame < overviewZoom) {
     return FOCUS_SPREAD;
   }
   if (frame < overviewHold) {
-    return lerpCam(FOCUS_SPREAD, IDENTITY_CAM, linearT(frame, overviewZoom, overviewHold));
+    return lerpCam(FOCUS_SPREAD, IDENTITY_CAM, smoothT(frame, overviewZoom, overviewHold));
   }
   if (frame < cmpZoom) {
     return IDENTITY_CAM;
   }
   if (frame < cmpHold) {
-    return lerpCam(IDENTITY_CAM, FOCUS_CMP, linearT(frame, cmpZoom, cmpHold));
-  }
-  if (frame < examZoom) {
-    return FOCUS_CMP;
-  }
-  if (frame < examHold) {
-    return lerpCam(FOCUS_CMP, FOCUS_EXAM, linearT(frame, examZoom, examHold));
+    return lerpCam(IDENTITY_CAM, FOCUS_CMP, smoothT(frame, cmpZoom, cmpHold));
   }
   if (frame < outroZoom) {
-    return FOCUS_EXAM;
+    return FOCUS_CMP;
   }
   if (frame < outroZoom + ZOOM) {
-    return lerpCam(FOCUS_EXAM, IDENTITY_CAM, linearT(frame, outroZoom, outroZoom + ZOOM));
+    return lerpCam(FOCUS_CMP, IDENTITY_CAM, smoothT(frame, outroZoom, outroZoom + ZOOM));
   }
   return IDENTITY_CAM;
 };
+
+const moving = (frame: number) =>
+  (frame >= clusterZoom && frame < clusterHold) ||
+  (frame >= partitionZoom && frame < partitionHold) ||
+  (frame >= spreadZoom && frame < spreadHold) ||
+  (frame >= overviewZoom && frame < overviewHold) ||
+  (frame >= cmpZoom && frame < cmpHold) ||
+  (frame >= outroZoom && frame < outroZoom + ZOOM);
 
 const focusedType = (frame: number): TypeId | null => {
   if (frame >= clusterHold && frame < partitionZoom) {
@@ -171,55 +169,25 @@ const focusedType = (frame: number): TypeId | null => {
 };
 
 const captionFor = (frame: number): { kicker: string; line: string } => {
-  if (frame < clusterZoom) {
-    return { kicker: "SAA · EC2", line: "Placement Groups — 置き方で性能と障害ドメインが変わる" };
-  }
-  if (frame < clusterHold + 160) {
-    return { kicker: "Cluster", line: "同一 AZ の近傍に詰める。目的は低レイテンシと高パケットレート" };
-  }
-  if (frame < clusterHold + 340) {
-    return { kicker: "Cluster · 使う", line: "HPC / MPI など密結合。10Gbps+ と短いホップがほしいとき" };
+  if (frame < clusterHold) {
+    return { kicker: "Placement Groups", line: "置き方で、速さも壊れ方も変わる" };
   }
   if (frame < partitionZoom) {
-    return { kicker: "Cluster · 使わない", line: "単一 AZ。相関障害。高可用性の設計には使わない。同時起動が安全" };
-  }
-  if (frame < partitionHold + 160) {
-    return { kicker: "Partition", line: "ラック単位の論理パーティション。複製を別パーティションへ" };
-  }
-  if (frame < partitionHold + 340) {
-    return { kicker: "Partition · 使う", line: "Hadoop / Kafka / Cassandra。ラック障害をパーティションに閉じる" };
+    return { kicker: "Cluster", line: "近くに集める。速い。一緒に落ちる。" };
   }
   if (frame < spreadZoom) {
-    return { kicker: "Partition · 制約", line: "1 AZ あたり最大 7 パーティション。AZ またぎ可" };
-  }
-  if (frame < spreadHold + 160) {
-    return { kicker: "Spread", line: "インスタンスを別ハードウェアへ厳密配置。同時被災を避ける" };
-  }
-  if (frame < spreadHold + 340) {
-    return { kicker: "Spread · 使う", line: "少数の重要ノード（DNS / AD / コントローラ）。小さい HA" };
+    return { kicker: "Partition", line: "ラックごとに分ける。片方の障害は他に広がらない。" };
   }
   if (frame < overviewZoom) {
-    return { kicker: "Spread · 制約", line: "実行中は 1 AZ あたり最大 7 台。AZ またぎ可（× AZ 数）" };
+    return { kicker: "Spread", line: "別々の機械へ。1台落ちても他は生きる。" };
   }
-  if (frame < cmpZoom) {
-    return { kicker: "3 類型", line: "性能 / ラック隔離 / ハード隔離 — 目的から逆引きする" };
-  }
-  if (frame < cmpHold + 280) {
-    return { kicker: "比較", line: "試験は「何を守りたいか」で選ぶ。性能≠可用性" };
-  }
-  if (frame < examZoom) {
-    return { kicker: "比較", line: "Cluster=単一AZ · Partition=7 partitions/AZ · Spread=7 instances/AZ" };
-  }
-  if (frame < examHold + 200) {
-    return { kicker: "試験ポイント", line: "AZ 認識：Cluster だけ単一。他は複数 AZ に広げられる" };
-  }
-  if (frame < examHold + 400) {
-    return { kicker: "試験ポイント", line: "台数の直観：Spread は少数、Partition は大規模分散、Cluster は容量次第" };
+  if (frame < cmpHold) {
+    return { kicker: "3 類型", line: "速さ / ラックの隔離 / 機械の隔離" };
   }
   if (frame < outroZoom) {
-    return { kicker: "ユースケース対応", line: "HPC→Cluster / 分散基盤→Partition / 少数の重要ノード→Spread" };
+    return { kicker: "比べる", line: "一緒に落ちる？ 一部だけ？ 1台だけ？" };
   }
-  return { kicker: "SAA · まとめ", line: "Placement Group は性能と障害ドメインのトレードオフ" };
+  return { kicker: "覚え方", line: "Cluster は 1 AZ。Spread は 7 台/AZ" };
 };
 
 const InstanceChip: FC<{
@@ -299,23 +267,55 @@ const AzFrame: FC<{
   </div>
 );
 
+const FlowPath: FC<{ pts: Pt[]; color: string; opacity: number }> = ({ pts, color, opacity }) => (
+  <path
+    d={toD(pts)}
+    fill="none"
+    stroke={color}
+    strokeWidth={3}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    opacity={opacity}
+  />
+);
+
+const chipCenter = (col: number, row: number): Pt => ({
+  x: 36 + col * 58 + 22,
+  y: 46 + row * 58 + 22,
+});
+
+const CLUSTER_LOOP: Pt[] = [
+  chipCenter(0, 0),
+  chipCenter(1, 0),
+  chipCenter(2, 0),
+  chipCenter(2, 1),
+  chipCenter(1, 1),
+  chipCenter(0, 1),
+  chipCenter(0, 0),
+];
+const CLUSTER_CROSS: Pt[] = [chipCenter(0, 0), chipCenter(2, 1)];
+
 const ClusterBody: FC<{ frame: number }> = ({ frame }) => {
-  const t = Math.max(linearT(frame, 24, 80), linearT(frame, clusterHold, clusterHold + 90));
-  const pulse = 0.45 + 0.55 * Math.abs(((frame - clusterHold) % 48) / 24 - 1);
-  const showDont = linearT(frame, clusterHold + 280, clusterHold + 340);
-  const chips = [0, 1, 2, 3, 4, 5];
+  const fail = smoothT(frame, clusterHold + 280, clusterHold + 340);
+  const live = 1 - fail;
+  const trafficOn = frame >= 36 || frame >= clusterHold;
+  const t1 = loopT(frame, 36, 56);
+  const t2 = loopT(frame, 48, 70);
+  const p1 = walkPolyline(CLUSTER_LOOP, t1);
+  const p2 = walkPolyline(CLUSTER_CROSS, t2);
+  const accent = fail > 0.45 ? DANGER_COLOR : CLUSTER_ACCENT;
   return (
     <div style={{ position: "relative", width: "100%", height: 430 }}>
-      <AzFrame label="AZ · 単一のみ" width={484} height={248} accent={CLUSTER_ACCENT}>
+      <AzFrame label="1 つの AZ" width={484} height={300} accent={accent}>
         <div
           style={{
-            marginTop: 18,
-            marginLeft: 10,
-            width: 300,
-            height: 196,
+            marginTop: 22,
+            marginLeft: 56,
+            width: 360,
+            height: 236,
             borderRadius: 12,
             background: "linear-gradient(180deg, #1A2438 0%, #121A2B 100%)",
-            border: `1px solid ${CLUSTER_ACCENT}55`,
+            border: `1px solid ${accent}55`,
             position: "relative",
           }}
         >
@@ -332,85 +332,68 @@ const ClusterBody: FC<{ frame: number }> = ({ frame }) => {
           >
             RACK
           </Txt>
-          {chips.map((i) => {
+          {[0, 1, 2, 3, 4, 5].map((i) => {
             const col = i % 3;
             const row = Math.floor(i / 3);
-            const appear = Math.max(
-              linearT(frame, 20 + i * 5, 44 + i * 5),
-              linearT(frame, clusterHold + 8 + i * 10, clusterHold + 28 + i * 10),
-            );
             return (
               <InstanceChip
                 key={i}
-                x={24 + col * 56}
-                y={40 + row * 56}
-                glow={t > 0.4}
-                accent={CLUSTER_ACCENT}
-                opacity={appear}
+                x={36 + col * 58}
+                y={46 + row * 58}
+                glow={live > 0.5}
+                accent={accent}
+                opacity={1}
               />
             );
           })}
-          <svg
-            width={90}
-            height={120}
-            style={{ position: "absolute", right: 18, top: 40, opacity: t * pulse }}
-          >
-            <path
-              d="M10 20 H70 M10 60 H70 M10 100 H70"
-              fill="none"
-              stroke={CLUSTER_ACCENT}
-              strokeWidth={3}
-              strokeLinecap="round"
-            />
+          <svg width={360} height={236} style={{ position: "absolute", inset: 0, overflow: "visible" }}>
+            <FlowPath pts={CLUSTER_LOOP} color={accent} opacity={0.35 * live} />
+            <FlowPath pts={CLUSTER_CROSS} color={accent} opacity={0.25 * live} />
           </svg>
-        </div>
-        <div style={{ position: "absolute", right: 16, top: 52, width: 140 }}>
-          <Txt style={{ fontSize: 13, color: MUTED, letterSpacing: "0.1em", fontWeight: 700 }}>INTENT</Txt>
-          <Txt style={{ fontSize: 20, color: TEXT, fontWeight: 700, marginTop: 4 }}>低レイテンシ</Txt>
-          <Txt style={{ fontSize: 16, color: CLUSTER_ACCENT, fontWeight: 700, marginTop: 2 }}>高 PPS</Txt>
+          {trafficOn ? <PacketDot x={p1.x} y={p1.y} color={accent} opacity={live} /> : null}
+          {trafficOn ? <PacketDot x={p2.x} y={p2.y} color={accent} opacity={live * 0.9} size={12} /> : null}
         </div>
       </AzFrame>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 14 }}>
-        <Tag label="HPC / MPI" accent={CLUSTER_ACCENT} />
-        <Tag label="密結合" accent={CLUSTER_ACCENT} />
-        <Tag label="同時起動が安全" accent={WARN_COLOR} />
-      </div>
-      <div style={{ display: "flex", gap: 8, marginTop: 10, opacity: showDont }}>
-        <Tag label="✕ 高可用性" accent={DANGER_COLOR} />
-        <Tag label="✕ マルチ AZ" accent={DANGER_COLOR} />
-      </div>
+      <Txt style={{ marginTop: 18, fontSize: 20, fontWeight: 700, color: fail > 0.45 ? DANGER_COLOR : TEXT_SOFT }}>
+        {fail > 0.45 ? "ラックが落ちると、全部止まる" : "通信はすぐ隣へ届く"}
+      </Txt>
     </div>
   );
 };
 
+const partChip = (col: number, row: number): Pt => ({
+  x: 26 + col * 54 + 22,
+  y: 40 + row * 54 + 22,
+});
+
 const PartitionBody: FC<{ frame: number }> = ({ frame }) => {
-  const fail = linearT(frame, partitionHold + 220, partitionHold + 280);
+  const fail = smoothT(frame, partitionHold + 280, partitionHold + 340);
   const parts = [
-    { id: "P0", accent: PARTITION_ACCENT, fail: false },
-    { id: "P1", accent: DANGER_COLOR, fail: true },
-    { id: "P2", accent: PARTITION_ACCENT, fail: false },
+    { id: "A", fail: false },
+    { id: "B", fail: true },
+    { id: "C", fail: false },
   ];
   return (
     <div style={{ position: "relative", width: "100%", height: 430 }}>
-      <AzFrame label="AZ · またぎ可" width={484} height={248} accent={PARTITION_ACCENT}>
+      <AzFrame label="ラック" width={484} height={300} accent={PARTITION_ACCENT}>
         <div style={{ display: "flex", gap: 10, marginTop: 22, marginLeft: 8 }}>
           {parts.map((part, index) => {
-            const appear = Math.max(
-              linearT(frame, 22 + index * 8, 50 + index * 8),
-              linearT(frame, partitionHold + 10 + index * 18, partitionHold + 40 + index * 18),
-            );
-            const dim = part.fail ? 1 - fail * 0.55 : 1;
+            const dead = part.fail ? fail : 0;
+            const accent = dead > 0.45 ? DANGER_COLOR : PARTITION_ACCENT;
+            const loop: Pt[] = [partChip(0, 0), partChip(1, 0), partChip(1, 1), partChip(0, 1), partChip(0, 0)];
+            const t = loopT(frame, 40 + index * 12, 64);
+            const pkt = walkPolyline(loop, t);
             return (
               <div
                 key={part.id}
                 style={{
                   width: 142,
-                  height: 188,
+                  height: 236,
                   borderRadius: 12,
                   background: "linear-gradient(180deg, #1A2438 0%, #121A2B 100%)",
-                  border: part.fail && fail > 0.4 ? `1.5px solid ${DANGER_COLOR}` : `1px solid ${PARTITION_ACCENT}55`,
-                  opacity: appear * dim,
+                  border: `1px solid ${accent}66`,
                   position: "relative",
+                  opacity: 1 - dead * 0.25,
                 }}
               >
                 <Txt
@@ -420,17 +403,21 @@ const PartitionBody: FC<{ frame: number }> = ({ frame }) => {
                     fontSize: 14,
                     fontWeight: 700,
                     letterSpacing: "0.12em",
-                    color: part.fail && fail > 0.4 ? DANGER_COLOR : MUTED,
+                    color: dead > 0.45 ? DANGER_COLOR : MUTED,
                   }}
                 >
                   {part.id}
                 </Txt>
-                <InstanceChip x={22} y={44} accent={part.fail ? DANGER_COLOR : PARTITION_ACCENT} glow={!part.fail} />
-                <InstanceChip x={76} y={44} accent={part.fail ? DANGER_COLOR : PARTITION_ACCENT} glow={!part.fail} />
-                <InstanceChip x={22} y={100} accent={part.fail ? DANGER_COLOR : PARTITION_ACCENT} />
-                <InstanceChip x={76} y={100} accent={part.fail ? DANGER_COLOR : PARTITION_ACCENT} />
+                <InstanceChip x={26} y={40} accent={accent} glow={dead < 0.45} />
+                <InstanceChip x={80} y={40} accent={accent} glow={dead < 0.45} />
+                <InstanceChip x={26} y={94} accent={accent} />
+                <InstanceChip x={80} y={94} accent={accent} />
+                <svg width={142} height={236} style={{ position: "absolute", inset: 0, overflow: "visible" }}>
+                  <FlowPath pts={loop} color={accent} opacity={0.35 * (1 - dead)} />
+                </svg>
+                <PacketDot x={pkt.x} y={pkt.y} color={accent} opacity={1 - dead} size={12} />
                 {part.fail ? (
-                  <div style={{ position: "absolute", right: 8, bottom: 8, opacity: fail }}>
+                  <div style={{ position: "absolute", right: 8, bottom: 8, opacity: dead }}>
                     <IconImg file="icons/x.svg" size={22} />
                   </div>
                 ) : null}
@@ -439,84 +426,99 @@ const PartitionBody: FC<{ frame: number }> = ({ frame }) => {
           })}
         </div>
       </AzFrame>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 14 }}>
-        <Tag label="Hadoop / Kafka" accent={PARTITION_ACCENT} />
-        <Tag label="Cassandra" accent={PARTITION_ACCENT} />
-        <Tag label="7 partitions / AZ" accent={WARN_COLOR} />
-      </div>
-      <Txt style={{ marginTop: 12, fontSize: 16, color: TEXT_SOFT, fontWeight: 600 }}>
-        ラック障害は 1 パーティションに閉じる
+      <Txt style={{ marginTop: 18, fontSize: 20, fontWeight: 700, color: fail > 0.45 ? TEXT_SOFT : TEXT_SOFT }}>
+        {fail > 0.45 ? "B だけ止まる。A と C は動き続ける" : "通信は同じラックの中で回る"}
       </Txt>
     </div>
   );
 };
 
+const SPREAD_PTS: Pt[] = [
+  { x: 168, y: 70 },
+  { x: 168, y: 136 },
+  { x: 168, y: 202 },
+  { x: 392, y: 70 },
+  { x: 392, y: 136 },
+];
+const SPREAD_HOP_A: Pt[] = [SPREAD_PTS[0], SPREAD_PTS[1], SPREAD_PTS[2]];
+const SPREAD_HOP_B: Pt[] = [SPREAD_PTS[0], SPREAD_PTS[3], SPREAD_PTS[4]];
+
 const SpreadBody: FC<{ frame: number }> = ({ frame }) => {
-  const a = Math.max(linearT(frame, 24, 70), linearT(frame, spreadHold + 8, spreadHold + 70));
-  const b = Math.max(linearT(frame, 40, 90), linearT(frame, spreadHold + 50, spreadHold + 110));
+  const fail = smoothT(frame, spreadHold + 280, spreadHold + 340);
+  const tA = loopT(frame, 40, 90);
+  const tB = loopT(frame, 70, 110);
+  const pA = walkPolyline(SPREAD_HOP_A, tA);
+  const pB = walkPolyline(SPREAD_HOP_B, tB);
+  const rack2Dead = fail;
   return (
     <div style={{ position: "relative", width: "100%", height: 430 }}>
       <div style={{ display: "flex", gap: 12 }}>
-        <AzFrame label="AZ-a · max 7" width={236} height={248} accent={SPREAD_ACCENT}>
-          {[0, 1, 2].map((i) => (
-            <div
-              key={i}
-              style={{
-                marginTop: i === 0 ? 22 : 8,
-                marginLeft: 8,
-                width: 204,
-                height: 54,
-                borderRadius: 10,
-                background: "#101828",
-                border: "1px solid rgba(255,255,255,0.08)",
-                display: "flex",
-                alignItems: "center",
-                paddingLeft: 10,
-                gap: 10,
-                opacity: Math.max(
-                  linearT(frame, 24 + i * 10, 50 + i * 10),
-                  linearT(frame, spreadHold + 12 + i * 16, spreadHold + 36 + i * 16),
-                ),
-              }}
-            >
-              <Txt style={{ fontSize: 12, color: MUTED, width: 52, fontWeight: 700 }}>RACK {i + 1}</Txt>
-              <InstanceChip accent={SPREAD_ACCENT} glow={a > 0.5} size={36} absolute={false} />
-            </div>
-          ))}
+        <AzFrame label="AZ-a" width={236} height={300} accent={SPREAD_ACCENT}>
+          {[0, 1, 2].map((i) => {
+            const dead = i === 1 ? rack2Dead : 0;
+            const accent = dead > 0.45 ? DANGER_COLOR : SPREAD_ACCENT;
+            return (
+              <div
+                key={i}
+                style={{
+                  marginTop: i === 0 ? 28 : 10,
+                  marginLeft: 10,
+                  width: 200,
+                  height: 68,
+                  borderRadius: 10,
+                  background: "#101828",
+                  border: `1px solid ${accent}55`,
+                  display: "flex",
+                  alignItems: "center",
+                  paddingLeft: 12,
+                  gap: 12,
+                  opacity: 1 - dead * 0.35,
+                }}
+              >
+                <Txt style={{ fontSize: 13, color: MUTED, width: 64, fontWeight: 700 }}>機械 {i + 1}</Txt>
+                <InstanceChip accent={accent} glow={dead < 0.45} size={36} absolute={false} />
+                {i === 1 && dead > 0.4 ? <IconImg file="icons/x.svg" size={18} /> : null}
+              </div>
+            );
+          })}
         </AzFrame>
-        <AzFrame label="AZ-b · max 7" width={236} height={248} accent={SPREAD_ACCENT}>
+        <AzFrame label="AZ-b" width={236} height={300} accent={SPREAD_ACCENT}>
           {[0, 1].map((i) => (
             <div
               key={i}
               style={{
-                marginTop: i === 0 ? 22 : 8,
-                marginLeft: 8,
-                width: 204,
-                height: 54,
+                marginTop: i === 0 ? 28 : 10,
+                marginLeft: 10,
+                width: 200,
+                height: 68,
                 borderRadius: 10,
                 background: "#101828",
-                border: "1px solid rgba(255,255,255,0.08)",
+                border: `1px solid ${SPREAD_ACCENT}55`,
                 display: "flex",
                 alignItems: "center",
-                paddingLeft: 10,
-                gap: 10,
-                opacity: Math.max(linearT(frame, 40 + i * 10, 70 + i * 10), b),
+                paddingLeft: 12,
+                gap: 12,
               }}
             >
-              <Txt style={{ fontSize: 12, color: MUTED, width: 52, fontWeight: 700 }}>RACK {i + 1}</Txt>
-              <InstanceChip accent={SPREAD_ACCENT} glow={b > 0.5} size={36} absolute={false} />
+              <Txt style={{ fontSize: 13, color: MUTED, width: 64, fontWeight: 700 }}>機械 {i + 1}</Txt>
+              <InstanceChip accent={SPREAD_ACCENT} glow size={36} absolute={false} />
             </div>
           ))}
         </AzFrame>
       </div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 14 }}>
-        <Tag label="DNS / AD" accent={SPREAD_ACCENT} />
-        <Tag label="重要ノード" accent={SPREAD_ACCENT} />
-        <Tag label="7 running / AZ" accent={WARN_COLOR} />
-      </div>
-      <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-        <Tag label="✕ 大規模台数" accent={DANGER_COLOR} />
-      </div>
+      <svg
+        width={484}
+        height={300}
+        style={{ position: "absolute", left: 0, top: 0, pointerEvents: "none", overflow: "visible" }}
+      >
+        <FlowPath pts={SPREAD_HOP_A} color={SPREAD_ACCENT} opacity={0.28 * (1 - rack2Dead * 0.5)} />
+        <FlowPath pts={SPREAD_HOP_B} color={SPREAD_ACCENT} opacity={0.28} />
+      </svg>
+      <PacketDot x={pA.x} y={pA.y} color={SPREAD_ACCENT} opacity={1 - rack2Dead * 0.7} size={12} />
+      <PacketDot x={pB.x} y={pB.y} color={SPREAD_ACCENT} opacity={1} size={12} />
+      <Txt style={{ marginTop: 18, fontSize: 20, fontWeight: 700, color: TEXT_SOFT }}>
+        {fail > 0.45 ? "1 台落ちても、ほかは届き続ける" : "通信は離れた機械のあいだをゆっくり渡る"}
+      </Txt>
     </div>
   );
 };
@@ -534,7 +536,7 @@ const TypeCard: FC<{
       style={{
         position: "absolute",
         left: type.x,
-        top: type.y + (1 - appear) * 16,
+        top: type.y + (1 - appear) * 10,
         width: CARD_W,
         height: CARD_H,
         borderRadius: 22,
@@ -560,7 +562,7 @@ const TypeCard: FC<{
       <div style={{ display: "flex", alignItems: "center", gap: 14, marginTop: 16, marginBottom: 14 }}>
         <IconBadge file={type.icon} accent={focused ? type.accent : undefined} />
         <div>
-          <Txt style={{ fontSize: 14, letterSpacing: "0.16em", color: MUTED, fontWeight: 600 }}>{type.jp}</Txt>
+          <Txt style={{ fontSize: 14, letterSpacing: "0.12em", color: MUTED, fontWeight: 600 }}>{type.jp}</Txt>
           <Txt style={{ fontSize: 30, fontWeight: 700, color: TEXT, letterSpacing: "0.03em" }}>{type.en}</Txt>
         </div>
       </div>
@@ -571,20 +573,12 @@ const TypeCard: FC<{
   );
 };
 
-const CMP_ROWS: { label: string; values: [string, string, string] }[] = [
-  { label: "目的", values: ["性能・低遅延", "ラック障害隔離", "ハード障害隔離"] },
-  { label: "AZ", values: ["単一のみ", "複数可", "複数可"] },
-  { label: "台数の直観", values: ["容量次第 / 同時起動", "7 partitions / AZ", "7 running / AZ"] },
-  { label: "使う", values: ["HPC / MPI", "Hadoop / Kafka", "DNS / AD など少数"] },
-  { label: "使わない", values: ["HA 設計", "超低遅延 HPC", "大規模クラスタ"] },
-];
-
 const ComparisonBoard: FC<{ frame: number }> = ({ frame }) => {
-  const show = linearT(frame, cmpHold, cmpHold + 24);
+  const show = smoothT(frame, cmpHold, cmpHold + 36);
   const cols = [
-    { title: "Cluster", accent: CLUSTER_ACCENT },
-    { title: "Partition", accent: PARTITION_ACCENT },
-    { title: "Spread", accent: SPREAD_ACCENT },
+    { title: "Cluster", accent: CLUSTER_ACCENT, line: "一緒に落ちる", hint: "速さ" },
+    { title: "Partition", accent: PARTITION_ACCENT, line: "一部だけ落ちる", hint: "ラックの隔離" },
+    { title: "Spread", accent: SPREAD_ACCENT, line: "1 台だけ落ちる", hint: "機械の隔離" },
   ];
   return (
     <div
@@ -598,206 +592,63 @@ const ComparisonBoard: FC<{ frame: number }> = ({ frame }) => {
         background: "linear-gradient(180deg, #1A2438 0%, #121A2B 100%)",
         border: "1.5px solid rgba(255,255,255,0.1)",
         boxShadow: "0 18px 40px rgba(0,0,0,0.28)",
-        opacity: Math.max(0.35, show),
-        padding: "28px 32px 24px",
+        opacity: Math.max(0.4, show),
+        padding: "32px 36px",
         boxSizing: "border-box",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
-        <IconBadge file="icons/grid.svg" size={44} accent={WARN_COLOR} />
-        <div>
-          <Txt style={{ fontSize: 14, letterSpacing: "0.16em", color: MUTED, fontWeight: 600 }}>3-WAY</Txt>
-          <Txt style={{ fontSize: 28, fontWeight: 700, color: TEXT }}>Cluster / Partition / Spread</Txt>
-        </div>
-      </div>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "200px 1fr 1fr 1fr",
-          gap: 0,
-          borderRadius: 16,
-          overflow: "hidden",
-          border: "1px solid rgba(255,255,255,0.08)",
-        }}
-      >
-        <div style={{ background: "#101828", padding: "14px 16px" }} />
+      <Txt style={{ fontSize: 14, letterSpacing: "0.16em", color: MUTED, fontWeight: 600, marginBottom: 8 }}>
+        障害の広がり
+      </Txt>
+      <Txt style={{ fontSize: 28, fontWeight: 700, color: TEXT, marginBottom: 28 }}>目で追う 3 つの違い</Txt>
+      <div style={{ display: "flex", gap: 20 }}>
         {cols.map((col, index) => (
           <div
             key={col.title}
             style={{
-              background: "#101828",
-              padding: "14px 16px",
-              borderLeft: "1px solid rgba(255,255,255,0.06)",
-              opacity: linearT(frame, cmpHold + 20 + index * 16, cmpHold + 48 + index * 16),
-            }}
-          >
-            <Txt style={{ fontSize: 20, fontWeight: 700, color: col.accent, textAlign: "center" }}>{col.title}</Txt>
-          </div>
-        ))}
-        {CMP_ROWS.map((row, rowIndex) => (
-          <div key={row.label} style={{ display: "contents" }}>
-            <div
-              style={{
-                background: rowIndex % 2 === 0 ? "#162033" : "#141C2C",
-                padding: "13px 16px",
-                display: "flex",
-                alignItems: "center",
-              }}
-            >
-              <Txt style={{ fontSize: 16, fontWeight: 700, color: MUTED }}>{row.label}</Txt>
-            </div>
-            {row.values.map((value, colIndex) => (
-              <div
-                key={`${row.label}-${colIndex}`}
-                style={{
-                  background: rowIndex % 2 === 0 ? "#162033" : "#141C2C",
-                  padding: "13px 16px",
-                  borderLeft: "1px solid rgba(255,255,255,0.06)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  opacity: linearT(
-                    frame,
-                    cmpHold + 24 + rowIndex * 16 + colIndex * 4,
-                    cmpHold + 48 + rowIndex * 16 + colIndex * 4,
-                  ),
-                }}
-              >
-                <Txt
-                  style={{
-                    fontSize: 17,
-                    fontWeight: 600,
-                    color: row.label === "使わない" ? DANGER_COLOR : TEXT_SOFT,
-                    textAlign: "center",
-                  }}
-                >
-                  {value}
-                </Txt>
-              </div>
-            ))}
-          </div>
-        ))}
-      </div>
-      <div
-        style={{
-          display: "flex",
-          gap: 12,
-          marginTop: 22,
-          opacity: linearT(frame, cmpHold + 110, cmpHold + 150),
-        }}
-      >
-        <Tag label="性能 → Cluster" accent={CLUSTER_ACCENT} />
-        <Tag label="ラック隔離 → Partition" accent={PARTITION_ACCENT} />
-        <Tag label="ハード隔離 → Spread" accent={SPREAD_ACCENT} />
-        <Tag label="性能 ≠ 可用性" accent={WARN_COLOR} />
-      </div>
-    </div>
-  );
-};
-
-const EXAM_CARDS = [
-  {
-    icon: "icons/building.svg",
-    accent: CLUSTER_ACCENT,
-    kicker: "AZ awareness",
-    title: "AZ のまたぎ",
-    body: "Cluster は単一 AZ。Partition と Spread は複数 AZ に広げられる。",
-  },
-  {
-    icon: "icons/server.svg",
-    accent: WARN_COLOR,
-    kicker: "Count intuition",
-    title: "台数の直観",
-    body: "Spread は 7 台/AZ。Partition は 7 パーティション/AZ。Cluster は容量と同時起動。",
-  },
-  {
-    icon: "icons/check.svg",
-    accent: SUCCESS_COLOR,
-    kicker: "Use-case mapping",
-    title: "問題文 → 類型",
-    body: "低遅延 HPC → Cluster。分散基盤のラック隔離 → Partition。少数の重要ノード → Spread。",
-  },
-] as const;
-
-const ExamBoard: FC<{ frame: number }> = ({ frame }) => {
-  const show = linearT(frame, examHold, examHold + 24);
-  return (
-    <div
-      style={{
-        position: "absolute",
-        left: BOARD_X,
-        top: EXAM_Y,
-        width: BOARD_W,
-        height: BOARD_H,
-        borderRadius: 24,
-        background: "linear-gradient(180deg, #1A2438 0%, #121A2B 100%)",
-        border: "1.5px solid rgba(255,255,255,0.1)",
-        boxShadow: "0 18px 40px rgba(0,0,0,0.28)",
-        opacity: Math.max(0.35, show),
-        padding: "28px 32px 24px",
-        boxSizing: "border-box",
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 22 }}>
-        <IconBadge file="icons/check.svg" size={44} accent={SUCCESS_COLOR} />
-        <div>
-          <Txt style={{ fontSize: 14, letterSpacing: "0.16em", color: MUTED, fontWeight: 600 }}>SAA EXAM</Txt>
-          <Txt style={{ fontSize: 28, fontWeight: 700, color: TEXT }}>試験で問われやすい 3 点</Txt>
-        </div>
-      </div>
-      <div style={{ display: "flex", gap: 18 }}>
-        {EXAM_CARDS.map((card, index) => (
-          <div
-            key={card.title}
-            style={{
               flex: 1,
-              minHeight: 480,
+              height: 480,
               borderRadius: 20,
               background: "linear-gradient(180deg, #182236 0%, #121A2B 100%)",
-              border: `1.5px solid ${card.accent}55`,
-              boxShadow: `0 0 22px ${card.accent}22`,
+              border: `1.5px solid ${col.accent}55`,
               padding: 24,
               boxSizing: "border-box",
-              opacity: linearT(frame, examHold + 18 + index * 36, examHold + 52 + index * 36),
+              opacity: smoothT(frame, cmpHold + 20 + index * 28, cmpHold + 70 + index * 28),
             }}
           >
-            <IconBadge file={card.icon} size={56} accent={card.accent} />
-            <Txt
-              style={{
-                marginTop: 18,
-                fontSize: 14,
-                letterSpacing: "0.16em",
-                color: card.accent,
-                fontWeight: 700,
-              }}
-            >
-              {card.kicker}
+            <IconBadge
+              file={index === 0 ? "icons/zap.svg" : index === 1 ? "icons/layers.svg" : "icons/spread.svg"}
+              size={52}
+              accent={col.accent}
+            />
+            <Txt style={{ marginTop: 16, fontSize: 14, letterSpacing: "0.14em", color: col.accent, fontWeight: 700 }}>
+              {col.hint}
             </Txt>
-            <Txt style={{ marginTop: 8, fontSize: 26, fontWeight: 700, color: TEXT }}>{card.title}</Txt>
-            <Txt style={{ marginTop: 16, fontSize: 20, lineHeight: 1.55, color: TEXT_SOFT, fontWeight: 500 }}>
-              {card.body}
-            </Txt>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 22 }}>
-              {index === 0 ? (
-                <>
-                  <Tag label="Cluster = 1 AZ" accent={CLUSTER_ACCENT} />
-                  <Tag label="他はマルチ AZ" accent={SUCCESS_COLOR} />
-                </>
-              ) : null}
-              {index === 1 ? (
-                <>
-                  <Tag label="Spread 7/AZ" accent={SPREAD_ACCENT} />
-                  <Tag label="Partition 7/AZ" accent={PARTITION_ACCENT} />
-                </>
-              ) : null}
-              {index === 2 ? (
-                <>
-                  <Tag label="HPC → Cluster" accent={CLUSTER_ACCENT} />
-                  <Tag label="Kafka → Partition" accent={PARTITION_ACCENT} />
-                  <Tag label="AD → Spread" accent={SPREAD_ACCENT} />
-                </>
-              ) : null}
+            <Txt style={{ marginTop: 8, fontSize: 28, fontWeight: 700, color: TEXT }}>{col.title}</Txt>
+            <div style={{ display: "flex", gap: 10, marginTop: 28 }}>
+              {[0, 1, 2].map((i) => {
+                const dead = index === 0 || (index === 1 && i === 1) || (index === 2 && i === 0);
+                return (
+                  <div
+                    key={i}
+                    style={{
+                      width: 64,
+                      height: 64,
+                      borderRadius: 12,
+                      background: "#101828",
+                      border: `1.5px solid ${dead ? DANGER_COLOR : SUCCESS_COLOR}`,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      boxShadow: dead ? `0 0 12px ${DANGER_COLOR}44` : `0 0 12px ${SUCCESS_COLOR}33`,
+                    }}
+                  >
+                    <IconImg file={dead ? "icons/x.svg" : "icons/server.svg"} size={28} />
+                  </div>
+                );
+              })}
             </div>
+            <Txt style={{ marginTop: 28, fontSize: 22, fontWeight: 700, color: TEXT_SOFT }}>{col.line}</Txt>
           </div>
         ))}
       </div>
@@ -809,22 +660,23 @@ export const Ec2PlacementGroups: FC = () => {
   const frame = useCurrentFrame();
   const cam = cameraAt(frame);
   const focused = focusedType(frame);
-  const zoomed = cam.scale > 1.04;
+  const zoomed = cam.scale > 1.02;
   const titleOpacity =
-    interpolate(frame, [0, 16], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }) *
+    interpolate(frame, [0, 22], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }) *
     (zoomed ? 0 : 1);
-  const cardsAppear = linearT(frame, 10, 48);
+  const cardsAppear = smoothT(frame, 8, 56);
   const caption = captionFor(frame);
-  const captionOpacity = interpolate(frame, [0, 12, DURATION - 18, DURATION], [0, 1, 1, 1], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
+  const captionOpacity =
+    interpolate(frame, [0, 16, DURATION - 20, DURATION], [0, 1, 1, 1], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp",
+    }) * (moving(frame) ? 0.55 : 1);
 
   const dimFor = (id: TypeId) => {
     if (!focused) {
       return 1;
     }
-    return focused === id ? 1 : 0.28;
+    return focused === id ? 1 : 0.42;
   };
 
   return (
@@ -848,7 +700,6 @@ export const Ec2PlacementGroups: FC = () => {
         />
         <TypeCard id="spread" focused={focused === "spread"} dim={dimFor("spread")} appear={cardsAppear} frame={frame} />
         <ComparisonBoard frame={frame} />
-        <ExamBoard frame={frame} />
       </div>
 
       <Txt
@@ -881,7 +732,7 @@ export const Ec2PlacementGroups: FC = () => {
           opacity: titleOpacity,
         }}
       >
-        Cluster · Partition · Spread — 置き方で性能と障害ドメインが決まる
+        Cluster · Partition · Spread
       </Txt>
 
       <ScreenCaption kicker={caption.kicker} line={caption.line} opacity={captionOpacity} />
