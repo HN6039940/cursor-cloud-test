@@ -1,0 +1,11 @@
+html,
+body {
+  margin: 0;
+  background: #0b0b12;
+}
+
+img {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  -ms-interpolation-mode: nearest-neighbor;
+}
