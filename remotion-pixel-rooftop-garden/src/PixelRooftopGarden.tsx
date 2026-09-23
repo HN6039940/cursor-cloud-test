@@ -9,11 +9,12 @@ import {
 } from "remotion";
 
 /**
- * Locked by SPEC.md — palette, 960×540 canvas, and parallax ratios stay put.
+ * Palette and 960×540 canvas stay on SPEC.md.
+ * Parallax is widened so the distance reads: far almost parked, near outruns mid.
  * One characterless landscape. Linear horizontal pan only.
  *
  * Ratios (exact fractions, not a shared step):
- *   sky 0.05 (1/20) / city 0.2 (1/5) / garden 0.5 (1/2) / roof 1 / petals 1.2 (6/5)
+ *   sky 0.02 (1/50) / city 0.12 (3/25) / garden 0.55 (11/20) / roof 1 / petals 1.25 (5/4)
  */
 export const PIXEL_ROOFTOP_GARDEN = {
   fps: 24,
@@ -27,7 +28,7 @@ export const PIXEL_ROOFTOP_GARDEN = {
 export const PAN_START = 48;
 export const PAN_END = 312;
 /** Roof travel (ratio 1). Other layers are this distance × their ratio. */
-export const CAMERA_TRAVEL = 240;
+export const CAMERA_TRAVEL = 400;
 
 /** preview-static centers the 1280-wide skyline in the 960 frame. */
 const CITY_ORIGIN = 160;
@@ -68,7 +69,7 @@ export const cameraTravel = (frame: number) =>
     easing: Easing.linear,
   });
 
-/** Integer px. num/den keeps 0.05 from collapsing into another layer's step. */
+/** Integer px. num/den keeps 0.02 from collapsing into another layer's step. */
 export const layerShift = (frame: number, num: number, den: number) =>
   Math.round((cameraTravel(frame) * num) / den);
 
@@ -189,11 +190,11 @@ const Petals: FC<{ offsetX: number; offsetY: number }> = ({
 export const PixelRooftopGarden: FC = () => {
   const frame = useCurrentFrame();
   const { width } = PIXEL_ROOFTOP_GARDEN;
-  const sky = layerShift(frame, 1, 20);
-  const city = layerShift(frame, 1, 5);
-  const garden = layerShift(frame, 1, 2);
+  const sky = layerShift(frame, 1, 50);
+  const city = layerShift(frame, 3, 25);
+  const garden = layerShift(frame, 11, 20);
   const roof = layerShift(frame, 1, 1);
-  const petalsX = layerShift(frame, 6, 5);
+  const petalsX = layerShift(frame, 5, 4);
   const petalsY = Math.round((frame * PETAL_Y_NUM) / PETAL_Y_DEN);
 
   return (
