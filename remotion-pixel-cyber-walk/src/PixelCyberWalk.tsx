@@ -20,12 +20,20 @@ const SPRITE_H = 48;
 const SCALE = 4;
 
 /**
- * Walk cels share torso registration (opaque columns 3–22 on rows 6–18).
- * Pin that center. Do not re-center on the swinging feet or the body slides.
+ * Mint-hair COM x in source pixels (identical on every cel). Each frame is
+ * re-anchored to HAIR_SCREEN_X so a drifted cel cannot walk sideways.
  */
-const TORSO_CENTER_SRC = 12.5;
-const CHARACTER_CENTER_X = 466;
+const HAIR_COM_SRC_X = [
+  13.097938144329897, 13.097938144329897, 13.097938144329897, 13.097938144329897,
+  13.097938144329897, 13.097938144329897,
+] as const;
+const HAIR_SCREEN_X = 416 + HAIR_COM_SRC_X[0] * SCALE;
 const CHARACTER_TOP = 208;
+/**
+ * Native far skyline sits at y 174–320, behind opaque mid roofs, so a 0.15×
+ * scroll has almost no visible pixels. Shift the layer up; horizontal ratio stays 0.15.
+ */
+const FAR_SHIFT_UP = 150;
 
 /**
  * One ground speed. Each layer scrolls by its own ratio of that distance.
@@ -56,11 +64,12 @@ const TiledLayer: FC<{
   tileWidth: number;
   offsetX: number;
   offsetY?: number;
-}> = ({ file, tileWidth, offsetX, offsetY = 0 }) => {
+  shiftUp?: number;
+}> = ({ file, tileWidth, offsetX, offsetY = 0, shiftUp = 0 }) => {
   const { height } = PIXEL_CYBER_WALK;
   const rows = offsetY === 0 ? 1 : 2;
   const left = -mod(offsetX, tileWidth);
-  const top = offsetY === 0 ? 0 : mod(offsetY, height) - height;
+  const top = offsetY === 0 ? -shiftUp : mod(offsetY, height) - height;
 
   return (
     <AbsoluteFill style={{ overflow: "hidden" }}>
@@ -100,7 +109,7 @@ export const PixelCyberWalk: FC = () => {
   const frame = useCurrentFrame();
   const walkIndex = Math.floor(frame / 3) % 6;
   const characterLeft = Math.round(
-    CHARACTER_CENTER_X - TORSO_CENTER_SRC * SCALE,
+    HAIR_SCREEN_X - HAIR_COM_SRC_X[walkIndex] * SCALE,
   );
 
   return (
@@ -109,6 +118,7 @@ export const PixelCyberWalk: FC = () => {
         file="pixel/bg-far.png"
         tileWidth={960}
         offsetX={scrollPx(frame, 3, 20)}
+        shiftUp={FAR_SHIFT_UP}
       />
       <TiledLayer
         file="pixel/bg-mid.png"
