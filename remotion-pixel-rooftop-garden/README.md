@@ -18,14 +18,15 @@ Remotion は個人・非営利・従業員 3 名以下の営利組織、およ�
 | FPS | 24 |
 | 尺 | 15 秒（360 frames） |
 | カメラ | 線形の横パンのみ。0–2 秒静止、2–13 秒で屋根が **400px**、13–15 秒静止 |
-| パララックス | sky **0.02**（1/50） / city **0.12**（3/25） / garden **0.55**（11/20） / roof **1** / petals **1.25**（5/4） |
-| 花びら | 横は 1.25×。縦はカメラと別の落下 `round(frame / 4)` |
+| パララックス | sky **0.02** / city **0.12** / garden-base **0.5** / plants-far **0.45** / plants-mid **0.55** / plants-near **0.7** / roof **1** / petals **1.25** |
+| 風 | 植物だけ三角波で回転。far **±0.6°**（192f） / mid **±1.2°**（144f, 位相 48） / near **±2.2°**（120f, 位相 30）。足元が軸。床・屋根・空・都市は 0° |
+| 花びら | 横は 1.25× に風 ±16px。縦は `round(frame / 4)` |
 | 補間 | 全レイヤー `image-rendering: pixelated`。位置は整数 px。ぼかしなし |
 | 都市の初期位置 | `city-far.png`（1280 幅）を中央合わせ。左オフセット 160（静止プレビューと同じ） |
 
 パレット: `#B8E4FF` `#7EC8F0` `#FFE08A` `#F5FBFF` `#5FBF6A` `#3E8F4A` `#FF7EB6` `#FFC857` `#D9D2C5` `#B5AFA3` `#8A93A0` `#A8B8C8` `#8B6B4A`
 
-中間（frame 180、7.5 秒）の移動量: sky **4** / city **24** / garden **110** / roof **200** / petals X **250**（Y **45**）。終端（frame 359）: sky **8** / city **48** / garden **220** / roof **400** / petals X **500**。
+中間（frame 180、7.5 秒）の移動量: sky **4** / city **24** / garden-base **100** / plants-far **90** / plants-mid **110** / plants-near **140** / roof **200**。終端の屋根は **400px**、都市は **48px**。
 
 ## 必要環境
 
@@ -90,7 +91,7 @@ npm run still
 | --- | --- | --- | --- |
 | `PixelRooftopGarden` | 15s（360 frames @ 24fps） | 960×540 | 昼の屋上庭園。キャラなし。線形横パン |
 
-重ね順: `sky` → `city-far` → `garden-mid` → `roof-near` → `fx-petals`。
+重ね順: `sky` → `city-far` → `garden-base` → `plants-far` → `plants-mid` → `plants-near` → `roof-near` → `fx-petals`。
 
 ## アセット
 
@@ -100,9 +101,13 @@ npm run still
 | --- | --- |
 | `sky.png` | 空 960×540（0.02×）。右端は同じ空を 1 枚足して隙間を埋める |
 | `city-far.png` | 遠景 1280×540（0.12×）。余白の中だけパンする |
-| `garden-mid.png` | 中景 960×540（0.55×）。右へ同じ絵を接続（床グリッドは 48px 周期） |
+| `garden-base.png` | デッキとプランターのみ 960×540（0.5×）。植物なし。揺れ 0° |
+| `plants-far.png` | 遠景の木（0.45×、±0.6°） |
+| `plants-mid.png` | 中景の木（0.55×、±1.2°） |
+| `plants-near.png` | 手前の木（0.7×、±2.2°） |
+| `garden-mid.png` | `garden-base.png` と同じ内容の別名。合成には使わない |
 | `roof-near.png` | 前景 960×540（1×）。右へ手すり 1 ベイ（source x=96、幅 48）を繰り返す |
-| `fx-petals.png` | 花びら（1.25× + 縦ドリフト）。2×2 でタイル |
+| `fx-petals.png` | 花びら（1.25× + 風 ±16px + 縦ドリフト）。2×2 でタイル |
 | `preview-static.png` | 合成スチル（frame 0 の位置合わせ） |
 
 ## 終わり方
