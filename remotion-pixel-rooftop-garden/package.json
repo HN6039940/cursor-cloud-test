@@ -1,0 +1,32 @@
+{
+  "name": "remotion-pixel-rooftop-garden",
+  "version": "1.0.0",
+  "description": "Daytime pixel rooftop garden landscape (Remotion draft, no character)",
+  "repository": {},
+  "license": "UNLICENSED",
+  "private": true,
+  "dependencies": {
+    "@remotion/cli": "4.0.525",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "remotion": "4.0.525"
+  },
+  "devDependencies": {
+    "@remotion/eslint-config-flat": "4.0.525",
+    "@types/react": "19.2.7",
+    "@types/web": "0.0.166",
+    "eslint": "9.19.0",
+    "prettier": "3.8.1",
+    "typescript": "5.9.3"
+  },
+  "scripts": {
+    "dev": "remotion studio",
+    "studio": "remotion studio",
+    "build": "remotion bundle",
+    "render": "remotion render PixelRooftopGarden out/pixel-rooftop-garden.mp4 --crf=8 --pixel-format=yuv444p",
+    "render:artifact": "remotion render PixelRooftopGarden ../artifacts/pixel-rooftop-garden.mp4 --crf=8 --pixel-format=yuv444p",
+    "still": "remotion still PixelRooftopGarden out/preview.png --frame=180",
+    "upgrade": "remotion upgrade",
+    "lint": "eslint src && tsc"
+  }
+}
