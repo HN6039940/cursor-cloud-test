@@ -2,7 +2,7 @@ import type { CSSProperties, FC } from "react";
 import { AbsoluteFill, Img, staticFile, useCurrentFrame } from "remotion";
 
 /**
- * Fixed by SPEC.md — do not retune palette, canvas, sprite size, or parallax ratios.
+ * Fixed by SPEC.md — palette, canvas, sprite size, and parallax ratios stay put.
  * Canvas 960×540. Walk ≈ 8 fps via Math.floor(frame / 3) % 6 at 24 fps.
  * Parallax: far 0.15×, mid 0.45×, ground 1×, character 0, rain 0.8× + vertical fall.
  */
@@ -18,21 +18,36 @@ const BG = "#0B0B12";
 const SPRITE_W = 32;
 const SPRITE_H = 48;
 const SCALE = 4;
-/** Preview still places walk-02 here (feet on the alley floor under the neon rail). */
-const CHARACTER_LEFT = (PIXEL_CYBER_WALK.width - SPRITE_W * SCALE) / 2;
+
+/**
+ * Walk cels share torso registration (opaque columns 3–22 on rows 6–18).
+ * Pin that center. Do not re-center on the swinging feet or the body slides.
+ */
+const TORSO_CENTER_SRC = 12.5;
+const CHARACTER_CENTER_X = 466;
 const CHARACTER_TOP = 208;
 
-/** Ground speed 8 px/frame. Other layers are exact SPEC ratios of that. */
+/**
+ * One ground speed. Each layer scrolls by its own ratio of that distance.
+ * Far is 0.15× (3/20), not a fraction of the mid step.
+ * Do not drop ground toward 0 — a frozen street reads as a moonwalk.
+ */
 const GROUND_PX_PER_FRAME = 8;
+/** Vertical rain fall. Left as reviewed (デザ: rain speed is fine). */
+const RAIN_Y_PX_PER_FRAME = 3;
 
 const pixelated: CSSProperties = {
   imageRendering: "pixelated",
   display: "block",
+  flexShrink: 0,
 };
 
+/** Integer px. ratio is num/den so 0.15 cannot collapse into the mid step. */
+const scrollPx = (frame: number, ratioNum: number, ratioDen: number) =>
+  Math.round((frame * GROUND_PX_PER_FRAME * ratioNum) / ratioDen);
+
 const mod = (value: number, size: number) => {
-  const rounded = Math.round(value);
-  const remainder = rounded % size;
+  const remainder = Math.round(value) % size;
   return remainder < 0 ? remainder + size : remainder;
 };
 
@@ -56,10 +71,11 @@ const TiledLayer: FC<{
           top,
           display: "flex",
           flexDirection: "column",
+          width: tileWidth * 2,
         }}
       >
         {Array.from({ length: rows }, (_, row) => (
-          <div key={row} style={{ display: "flex", height }}>
+          <div key={row} style={{ display: "flex", flexShrink: 0, height }}>
             {Array.from({ length: 2 }, (_, col) => (
               <Img
                 key={col}
@@ -82,25 +98,27 @@ const TiledLayer: FC<{
 
 export const PixelCyberWalk: FC = () => {
   const frame = useCurrentFrame();
-  const groundX = frame * GROUND_PX_PER_FRAME;
   const walkIndex = Math.floor(frame / 3) % 6;
+  const characterLeft = Math.round(
+    CHARACTER_CENTER_X - TORSO_CENTER_SRC * SCALE,
+  );
 
   return (
     <AbsoluteFill style={{ backgroundColor: BG, overflow: "hidden" }}>
       <TiledLayer
         file="pixel/bg-far.png"
         tileWidth={960}
-        offsetX={(frame * 6) / 5}
+        offsetX={scrollPx(frame, 3, 20)}
       />
       <TiledLayer
         file="pixel/bg-mid.png"
         tileWidth={1280}
-        offsetX={(frame * 18) / 5}
+        offsetX={scrollPx(frame, 9, 20)}
       />
       <TiledLayer
         file="pixel/bg-ground.png"
         tileWidth={960}
-        offsetX={groundX}
+        offsetX={scrollPx(frame, 1, 1)}
       />
       <Img
         src={staticFile(`pixel/walk-0${walkIndex + 1}.png`)}
@@ -109,7 +127,7 @@ export const PixelCyberWalk: FC = () => {
         style={{
           ...pixelated,
           position: "absolute",
-          left: CHARACTER_LEFT,
+          left: characterLeft,
           top: CHARACTER_TOP,
           width: SPRITE_W * SCALE,
           height: SPRITE_H * SCALE,
@@ -118,8 +136,8 @@ export const PixelCyberWalk: FC = () => {
       <TiledLayer
         file="pixel/fx-rain.png"
         tileWidth={960}
-        offsetX={(frame * 32) / 5}
-        offsetY={frame * 3}
+        offsetX={scrollPx(frame, 4, 5)}
+        offsetY={frame * RAIN_Y_PX_PER_FRAME}
       />
     </AbsoluteFill>
   );
